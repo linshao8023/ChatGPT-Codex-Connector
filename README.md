@@ -156,3 +156,7 @@ python3 -m http.server 8000 -d public
 - Pages 静态资源限制：https://developers.cloudflare.com/pages/platform/limits/
 - Cloudflare China Network：https://developers.cloudflare.com/china-network/
 - Cloudflare China Network ICP：https://developers.cloudflare.com/china-network/concepts/icp/
+
+## Material Notes 2.0 社区功能
+
+已新增统一检索、科研知识笔记投稿、匿名回执、管理员按钮审核。部署前必须执行 [COMMUNITY_V2_SETUP.md](./COMMUNITY_V2_SETUP.md) 的数据库升级和管理员密钥配置；默认不允许匿名自动公开。
