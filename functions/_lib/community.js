@@ -40,29 +40,20 @@ export const orderClause = (sort, prefix = "") => {
   }
 };
 
-export function reviewDecision(env, { kind, title, summary }) {
-  const text = (title + " " + summary).normalize("NFKC");
-  const blocked = /加(我|微|v)[信vx]|私信(购买|付款)|代写(论文|毕业)|代发(论文|期刊)|赌博|刷单|色情|博彩|telegram|whatsapp/i.test(text);
-  if (blocked) return {status:"rejected",reason:"内容疑似广告或违规推广，请修改后重试"};
-
-  const containsLink = /(https?:\/\/|www\.|(?:^|\s)[\w.+-]+@[\w.-]+\.\w+)/i.test(text);
-  const suspicious = containsLink || /(\S)\1{9,}/u.test(text)
-    || /<\s*script|<\s*iframe|onerror\s*=/i.test(text)
-    || /[!！?？]{6,}/u.test(text);
-  // Auto-approval ON by default. Cloudflare AUTO_APPROVE_ENABLED=false
-  // disables it immediately; suspicious/low-information posts still require review.
-  const config = String(env?.AUTO_APPROVE_ENABLED ?? "true").trim().toLowerCase();
-  const enabled = !["false", "0", "off", "no"].includes(config);
-  const requiredSummaryLength = kind === "knowledge" ? 30 : 24;
-  const hasSubstance = lengthOf(title) >= 6 && lengthOf(summary) >= requiredSummaryLength;
-  const autoPublish = enabled && !suspicious && hasSubstance;
-  return {
-    status: autoPublish ? "approved" : "pending",
-    reason: autoPublish ? "基础规则自动通过（未经事实核验）"
-      : suspicious ? "需要核查链接或格式异常" : "内容不足以自动放行，待人工审核"
-  };
+// Verify the publishing code exclusively on the server. No default/hardcoded
+// code: a missing Cloudflare Secret must never cause automatic publication.
+export function approvalCodeMatches(env, submitted) {
+  const expected = typeof env?.SUBMISSION_APPROVAL_CODE === "string" ? env.SUBMISSION_APPROVAL_CODE : "";
+  if (!expected || typeof submitted !== "string" || submitted.length > 128) return false;
+  const candidate = submitted.trim();
+  const first = new TextEncoder().encode(expected);
+  const second = new TextEncoder().encode(candidate);
+  let difference = first.length ^ second.length;
+  for (let i = 0; i < Math.max(first.length, second.length); i++) {
+    difference |= (first[i] || 0) ^ (second[i] || 0);
+  }
+  return difference === 0;
 }
-
 export async function sha256(value) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
