@@ -30,3 +30,9 @@ CREATE TABLE IF NOT EXISTS moderation_events (
  acted_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_moderation_time ON moderation_events(acted_at DESC);
+
+-- 仅存投稿者自愿提供的姓名首字母，不存真实姓名。与原 submissions 表关联。
+CREATE TABLE IF NOT EXISTS submission_attributions (
+  submission_id INTEGER PRIMARY KEY REFERENCES submissions(id) ON DELETE CASCADE,
+  initials TEXT NOT NULL CHECK (length(initials) BETWEEN 1 AND 12 AND initials NOT GLOB '*[^a-z]*')
+);

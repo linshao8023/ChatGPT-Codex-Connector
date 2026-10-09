@@ -43,6 +43,7 @@ export async function onRequestPost({request,env}) {
 
   const title = cleanText(body.title);
   const summary = cleanText(body.summary);
+  const submitterInitials = typeof body.submitter_initials === "string" ? body.submitter_initials.trim().toLowerCase() : "";
   if (lengthOf(title) < 6 || lengthOf(title) > 200) {
     return respond({ok:false,error:"文献题目至少 6 个字符，最多 200 个字符"},400);
   }
@@ -51,6 +52,10 @@ export async function onRequestPost({request,env}) {
   }
   if (invalidText(title) || invalidText(summary)) {
     return respond({ok:false,error:"内容不能包含控制字符"},400);
+  }
+
+  if (!/^[a-z]{1,12}$/.test(submitterInitials)) {
+    return respond({ok:false,error:"提交者姓名首字母请填写 1–12 个英文字母，例如：王少林 → wsl"},400);
   }
 
   // Fail closed: code is set ONLY in Cloudflare Pages Secrets.
@@ -63,6 +68,8 @@ export async function onRequestPost({request,env}) {
   }
 
   try {
+    const attributionTable = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='submission_attributions'").first();
+    if (!attributionTable) return respond({ok:false,error:"投稿暂不可用：请站长先在 Cloudflare D1 执行 submission_initials_upgrade.sql"},503);
     const hash = await fingerprint(request,env);
     const [recent,duplicate] = await Promise.all([
       db.prepare("SELECT COUNT(*) AS n FROM submissions WHERE submitter_hash=? AND created_at>=datetime('now','-1 hour')").bind(hash).first(),
@@ -73,9 +80,13 @@ export async function onRequestPost({request,env}) {
     }
     if (duplicate) return respond({ok:false,error:"相同的题目和总结最近已提交，请勿重复分享"},409);
 
-    const saved = await db.prepare(
-      "INSERT INTO submissions (title,summary,status,submitter_hash) VALUES (?,?,'approved',?)"
-    ).bind(title,summary,hash).run();
+    // D1 batch() is transactional: the initials and literature post must persist together.
+    const [saved] = await db.batch([
+      db.prepare("INSERT INTO submissions (title,summary,status,submitter_hash) VALUES (?,?,'approved',?)")
+        .bind(title,summary,hash),
+      db.prepare("INSERT INTO submission_attributions (submission_id,initials) VALUES (last_insert_rowid(),?)")
+        .bind(submitterInitials)
+    ]);
     const id = Number(saved?.meta?.last_row_id||0);
     if (!id) throw new Error("Missing inserted ID");
 
@@ -92,7 +103,7 @@ export async function onRequestPost({request,env}) {
     }
 
     return respond({
-      ok:true,id,status:"approved",receipt,
+      ok:true,id,status:"approved",submitter_initials:submitterInitials,receipt,
       message:"投稿成功，暗号及字符长度验证通过，文献已自动批准并公开。"
     },201);
   } catch(error) {
