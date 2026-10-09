@@ -1,20 +1,60 @@
-import {respond,database,safeSearch} from "../_lib/community.js";
+import {respond,database,safeSearch,pageNumber,pageSize,orderClause} from "../_lib/community.js";
+
 export async function onRequestGet({request,env}) {
- const db=database(env);if(!db)return respond({ok:false,error:"数据库未绑定"},503);
- const u=new URL(request.url),source=["all","community","knowledge","zotero"].includes(u.searchParams.get("source"))?u.searchParams.get("source"):"all";
- const q=safeSearch(u.searchParams.get("q")),page=Math.max(1,Math.min(10000,parseInt(u.searchParams.get("page")||"1",10)||1)),limit=20;
- try{
-  const rows=[];
-  const parts=[];
-  if(["all","community"].includes(source))parts.push("SELECT ('community-'||id) AS item_id,'community' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time FROM submissions WHERE status='approved'");
-  if(["all","knowledge"].includes(source))parts.push("SELECT ('knowledge-'||id) AS item_id,'knowledge' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time FROM knowledge_posts WHERE status='approved'");
-  if(["all","zotero"].includes(source))parts.push("SELECT ('zotero-'||zotero_key) AS item_id,'zotero' AS source,title,abstract AS description,authors,item_year AS published,COALESCE(NULLIF(url,''),zotero_url) AS url,date_modified AS sort_time FROM zotero_items WHERE generation=(SELECT active_generation FROM zotero_sync_state WHERE id=1)");
-  const inner=parts.join(" UNION ALL ");
-  const where=q?" WHERE instr(lower(title),lower(?))>0 OR instr(lower(description),lower(?))>0 OR instr(lower(authors),lower(?))>0":"";
-  const args=q?[q,q,q]:[];
-  const count=await db.prepare("SELECT count(*) AS n FROM ("+inner+") AS combined"+where).bind(...args).first();
-  const result=await db.prepare("SELECT * FROM ("+inner+") AS combined"+where+" ORDER BY sort_time DESC,item_id DESC LIMIT ? OFFSET ?").bind(...args,limit,(page-1)*limit).all();
-  rows.push(...(result.results||[]));
-  return respond({ok:true,items:rows,page,total:Number(count?.n||0),per_page:limit,source});
- }catch(e){console.error("Unified search",e);return respond({ok:false,error:"请执行 community_upgrade.sql 和 zotero_schema.sql"},503);}
+  const db = database(env);
+  if (!db) return respond({ok:false,error:"D1 数据库尚未绑定"},503);
+
+  const url = new URL(request.url);
+  const source = ["all","community","knowledge","zotero"].includes(url.searchParams.get("source"))
+    ? url.searchParams.get("source") : "all";
+  const q = safeSearch(url.searchParams.get("q"));
+  const sort = ["newest","oldest","title","title_desc"].includes(url.searchParams.get("sort"))
+    ? url.searchParams.get("sort") : "newest";
+  const page = pageNumber(url.searchParams.get("page"));
+  const perPage = pageSize(url.searchParams.get("per_page"),24);
+
+  try {
+    // During a staged D1 migration, existing approved posts remain searchable.
+    const existing = await db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('submissions','knowledge_posts','zotero_items','zotero_sync_state')"
+    ).all();
+    const available = new Set((existing.results || []).map((row) => row.name));
+    const parts = [];
+    if (["all","community"].includes(source) && available.has("submissions")) {
+      parts.push("SELECT 'community-'||id AS item_id,'community' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time,'' AS search_extra FROM submissions WHERE status='approved'");
+    }
+    if (["all","knowledge"].includes(source) && available.has("knowledge_posts")) {
+      parts.push("SELECT 'knowledge-'||id AS item_id,'knowledge' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time,'' AS search_extra FROM knowledge_posts WHERE status='approved'");
+    }
+    if (["all","zotero"].includes(source)
+      && available.has("zotero_items") && available.has("zotero_sync_state")) {
+      parts.push("SELECT 'zotero-'||zotero_key AS item_id,'zotero' AS source,title,abstract AS description,authors,item_year AS published,COALESCE(NULLIF(url,''),zotero_url) AS url,date_modified AS sort_time,(doi||' '||tags_json||' '||publication_title) AS search_extra FROM zotero_items WHERE generation=(SELECT active_generation FROM zotero_sync_state WHERE id=1)");
+    }
+    if (!parts.length) return respond({ok:true,items:[],total:0,page,per_page:perPage,sort,source,ready:false});
+
+    const inner = "(" + parts.join(" UNION ALL ") + ") AS records";
+    const where = q
+      ? " WHERE instr(lower(title),lower(?))>0 OR instr(lower(description),lower(?))>0 OR instr(lower(authors),lower(?))>0 OR instr(lower(search_extra),lower(?))>0"
+      : "";
+    const binds = q ? [q,q,q,q] : [];
+    const totalRow = await db.prepare("SELECT COUNT(*) AS total FROM " + inner + where).bind(...binds).first();
+    const rows = await db.prepare(
+      "SELECT item_id,source,title,description,authors,published,url,sort_time FROM " + inner + where + " " +
+      orderClause(sort) + " LIMIT ? OFFSET ?"
+    ).bind(...binds,perPage,(page-1)*perPage).all();
+
+    return respond({
+      ok:true,
+      ready:true,
+      items:rows.results || [],
+      total:Number(totalRow?.total || 0),
+      page,
+      per_page:perPage,
+      sort,
+      source
+    });
+  } catch(error) {
+    console.error("Public search failed:",error);
+    return respond({ok:false,error:"检索失败，请稍后重试"},503);
+  }
 }
