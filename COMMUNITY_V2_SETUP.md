@@ -1,8 +1,11 @@
 # 文献投稿：题目 + 总结 + 发布暗号
 
-最新版本访客只填写三个字段：**文献题目**（6–200 字符）、**简要总结**（24–1200 字符）、**发布暗号**。服务端验证发布暗号，符合两个长度条件则写入 D1 `submissions`，`status='approved'`，公开搜索立即可查询。自动公开不代表论文内容已核实，管理员仍可在 `/admin.html` 下架。重复投稿和频率限制保留。
+最新版本访客填写四个字段：**文献题目**（6–200 字符）、**简要总结**（24–1200 字符）、**提交者姓名首字母**（1–12 个英文字母，如王少林→wsl）、**发布暗号**。服务端验证发布暗号，符合两个长度条件则写入 D1 `submissions`，`status='approved'`，公开搜索立即可查询。自动公开不代表论文内容已核实，管理员仍可在 `/admin.html` 下架。重复投稿和频率限制保留。
 
 ## Cloudflare 配置（必须完成）
+
+**新增必要迁移：** 在当前 D1 数据库 Console 执行 [submission_initials_upgrade.sql](./submission_initials_upgrade.sql)（或尚未执行过 community_upgrade.sql 时，执行其最新版本）。它只建立投稿署名关联表，不会修改原有文献记录。若不执行，新的投稿将明确返回 503 提示，不会出现投稿保存成功但署名丢失的情况。公开列表只显示署名首字母，不显示提交者 IP。
+
 
 1. 登录 Cloudflare Pages → 对应项目 → Settings → Variables and Secrets，新建 **Secret**，变量名 **`SUBMISSION_APPROVAL_CODE`**，变量值输入你指定的暗号 **2026**。
 2. 确认 D1 binding 变量名 **`DB`** 指向原来的 `material-notes-submissions` 数据库。

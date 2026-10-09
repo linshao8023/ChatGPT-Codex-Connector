@@ -16,19 +16,20 @@ export async function onRequestGet({request,env}) {
   try {
     // During a staged D1 migration, existing approved posts remain searchable.
     const existing = await db.prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('submissions','knowledge_posts','zotero_items','zotero_sync_state')"
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('submissions','knowledge_posts','zotero_items','zotero_sync_state','submission_attributions')"
     ).all();
     const available = new Set((existing.results || []).map((row) => row.name));
     const parts = [];
     if (["all","community"].includes(source) && available.has("submissions")) {
-      parts.push("SELECT 'community-'||id AS item_id,'community' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time,'' AS search_extra FROM submissions WHERE status='approved'");
+      const attr = available.has("submission_attributions");
+      parts.push("SELECT 'community-'||s.id AS item_id,'community' AS source,s.title,s.summary AS description,'' AS authors,'' AS published,'' AS url,s.created_at AS sort_time,'' AS search_extra,"+(attr?"COALESCE(a.initials,'')":"''")+" AS submitter_initials FROM submissions s "+(attr?"LEFT JOIN submission_attributions a ON a.submission_id=s.id ":"")+"WHERE s.status='approved'");
     }
     if (["all","knowledge"].includes(source) && available.has("knowledge_posts")) {
-      parts.push("SELECT 'knowledge-'||id AS item_id,'knowledge' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time,'' AS search_extra FROM knowledge_posts WHERE status='approved'");
+      parts.push("SELECT 'knowledge-'||id AS item_id,'knowledge' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time,'' AS search_extra,'' AS submitter_initials FROM knowledge_posts WHERE status='approved'");
     }
     if (["all","zotero"].includes(source)
       && available.has("zotero_items") && available.has("zotero_sync_state")) {
-      parts.push("SELECT 'zotero-'||zotero_key AS item_id,'zotero' AS source,title,abstract AS description,authors,item_year AS published,COALESCE(NULLIF(url,''),zotero_url) AS url,date_modified AS sort_time,(doi||' '||tags_json||' '||publication_title) AS search_extra FROM zotero_items WHERE generation=(SELECT active_generation FROM zotero_sync_state WHERE id=1)");
+      parts.push("SELECT 'zotero-'||zotero_key AS item_id,'zotero' AS source,title,abstract AS description,authors,item_year AS published,COALESCE(NULLIF(url,''),zotero_url) AS url,date_modified AS sort_time,(doi||' '||tags_json||' '||publication_title) AS search_extra,'' AS submitter_initials FROM zotero_items WHERE generation=(SELECT active_generation FROM zotero_sync_state WHERE id=1)");
     }
     if (!parts.length) return respond({ok:true,items:[],total:0,page,per_page:perPage,sort,source,ready:false});
 
@@ -39,7 +40,7 @@ export async function onRequestGet({request,env}) {
     const binds = q ? [q,q,q,q] : [];
     const totalRow = await db.prepare("SELECT COUNT(*) AS total FROM " + inner + where).bind(...binds).first();
     const rows = await db.prepare(
-      "SELECT item_id,source,title,description,authors,published,url,sort_time FROM " + inner + where + " " +
+      "SELECT item_id,source,title,description,authors,published,url,sort_time,submitter_initials FROM " + inner + where + " " +
       orderClause(sort) + " LIMIT ? OFFSET ?"
     ).bind(...binds,perPage,(page-1)*perPage).all();
 

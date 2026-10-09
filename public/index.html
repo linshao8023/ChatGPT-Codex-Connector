@@ -69,13 +69,15 @@
       <div class="section-intro"><div>
         <p class="section-kicker">COMMUNITY SUBMISSION</p>
         <h2>分享你读过的文献<span class="heading-period">.</span></h2>
-        <p class="section-description">只需填写文献题目、简要总结与发布暗号，验证通过后立即公开。</p>
+        <p class="section-description">填写文献题目、简要总结、姓名首字母与发布暗号，验证通过后立即公开。</p>
       </div></div>
       <form id="new-community-form" class="community-panel">
         <label for="new-title">文献题目 <span aria-hidden="true">*</span></label>
         <input id="new-title" name="title" type="text" required minlength="6" maxlength="200" placeholder="至少 6 个字符" autocomplete="off">
         <label for="new-summary">简要总结 <span aria-hidden="true">*</span></label>
         <textarea id="new-summary" name="summary" required minlength="24" maxlength="1200" rows="6" placeholder="至少 24 个字符，请用自己的语言总结关键发现或研究方法"></textarea>
+        <label for="new-initials">提交者姓名首字母 <span aria-hidden="true">*</span></label>
+        <input id="new-initials" name="submitter_initials" type="text" required minlength="1" maxlength="12" pattern="[A-Za-z]{1,12}" autocomplete="off" placeholder="例如：王少林 → wsl">
         <label for="new-code">发布暗号 <span aria-hidden="true">*</span></label>
         <input id="new-code" name="approval_code" type="password" required maxlength="128" autocomplete="off" placeholder="填写发布暗号">
         <p class="submit-hint">题目不少于 6 个字符、总结不少于 24 个字符，并且暗号正确，即可自动通过并公开。请勿公开受版权保护的全文。</p>
