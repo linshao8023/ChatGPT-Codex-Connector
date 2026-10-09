@@ -156,3 +156,30 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important}}
 
 .notfound-main{min-height:75vh;display:grid;place-content:center;text-align:center}.notfound-title{font-size:clamp(34px,6vw,65px);letter-spacing:-2px}.notfound-detail{color:#6b7772}
+
+/* Community submissions */
+.submit-section{padding-block:100px 112px;border-top:1px solid var(--line)}
+.submit-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px;align-items:start}
+.submit-form,.community-board{background:#fff;border:1px solid var(--line);border-radius:10px;padding:30px;box-shadow:0 12px 28px rgba(34,65,47,.025)}
+.submit-form{display:flex;flex-direction:column;gap:10px}
+.submit-form label{font-size:13px;color:var(--deep);font-weight:750}
+.submit-form label span{color:#a65c46}
+.submit-form input,.submit-form textarea{background:#fcfdfb;border:1px solid #d4e1d7;border-radius:6px;width:100%;padding:13px 14px;outline-color:#77a58b;color:var(--ink);font:inherit;font-size:13px;line-height:1.7;resize:vertical}
+.submit-form input{margin-bottom:13px}
+.submit-form textarea{min-height:150px}
+.submit-form .honeypot{position:absolute;left:-99999px;width:1px;height:1px;overflow:hidden}
+.submit-notice{font-size:12px;line-height:1.85;color:var(--muted);margin:6px 0 10px}
+.submit-form .button{align-self:flex-start}
+.submit-form .button:disabled{opacity:.65;cursor:wait}
+.submit-feedback{min-height:24px;color:var(--green);font-size:13px;margin:6px 0 0;line-height:1.7}
+.submit-feedback.is-error{color:#ad493e}
+.community-board-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:15px}
+.community-board-head h3{font-size:19px;margin:0}
+.community-board-head span{font-size:11px;color:var(--muted)}
+.community-status{font-size:12px;color:var(--muted);margin:18px 0}
+.community-list{display:flex;flex-direction:column;gap:12px;max-height:680px;overflow:auto}
+.community-item{background:#f7f9f5;border:1px solid #e6ece4;border-radius:7px;padding:17px 19px;overflow-wrap:anywhere}
+.community-item h4{font-size:15px;margin:0 0 8px;line-height:1.6}
+.community-item p{white-space:pre-wrap;font-size:13px;margin:0 0 12px;color:#647368;line-height:1.8}
+.community-item time{font-size:10px;color:#91a093}
+@media(max-width:760px){.submit-section{padding-block:75px}.submit-layout{grid-template-columns:1fr}.submit-form,.community-board{padding:21px}}
