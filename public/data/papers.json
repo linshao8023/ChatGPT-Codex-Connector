@@ -1,0 +1,178 @@
+[
+  {
+    "id": "demo-01",
+    "status": "demo",
+    "title": "示例：多孔纤维素气凝胶在抗生素吸附中的结构设计",
+    "authors": "示例作者（待替换）",
+    "year": 2026,
+    "journal": "示例期刊信息（待替换）",
+    "category": "纤维素",
+    "pollutants": [
+      "抗生素"
+    ],
+    "keywords": [
+      "气凝胶",
+      "吸附",
+      "结构设计"
+    ],
+    "abstract": "此处填写真实论文的研究问题、材料制备方法、吸附机制、关键数据及阅读笔记。建议优先整理吸附动力学、等温模型与循环使用性能。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  },
+  {
+    "id": "demo-02",
+    "status": "demo",
+    "title": "示例：刺激响应型半纤维素水凝胶用于水相污染物去除",
+    "authors": "示例作者（待替换）",
+    "year": 2025,
+    "journal": "示例期刊信息（待替换）",
+    "category": "半纤维素",
+    "pollutants": [
+      "染料"
+    ],
+    "keywords": [
+      "水凝胶",
+      "刺激响应",
+      "智能材料"
+    ],
+    "abstract": "这里可以概括半纤维素改性路线、交联网络、环境响应行为和污染物结合位点，并附上实际 DOI 或开放获取原文。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  },
+  {
+    "id": "demo-03",
+    "status": "demo",
+    "title": "示例：木质素基碳材料的界面调控与污染物吸附",
+    "authors": "示例作者（待替换）",
+    "year": 2026,
+    "journal": "示例期刊信息（待替换）",
+    "category": "木质素",
+    "pollutants": [
+      "农药"
+    ],
+    "keywords": [
+      "碳材料",
+      "界面调控",
+      "吸附"
+    ],
+    "abstract": "整理木质素来源、碳化条件、比表面积、表面官能团，以及结构与吸附表现之间的关联。此记录不是实际发表的文献。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  },
+  {
+    "id": "demo-04",
+    "status": "demo",
+    "title": "示例：纤维素功能膜在 PFAS 分离中的应用进展",
+    "authors": "示例作者（待替换）",
+    "year": 2024,
+    "journal": "示例期刊信息（待替换）",
+    "category": "纤维素",
+    "pollutants": [
+      "PFAS"
+    ],
+    "keywords": [
+      "分离膜",
+      "界面功能化",
+      "选择性"
+    ],
+    "abstract": "建议记录膜通量、截留率、耐污染性、竞争离子影响及膜再生性能。上线时应替换为可核验的真实文献信息。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  },
+  {
+    "id": "demo-05",
+    "status": "demo",
+    "title": "示例：生物基复合材料对微纳塑料的捕获与分离",
+    "authors": "示例作者（待替换）",
+    "year": 2025,
+    "journal": "示例期刊信息（待替换）",
+    "category": "复合材料",
+    "pollutants": [
+      "微纳塑料"
+    ],
+    "keywords": [
+      "絮凝",
+      "过滤",
+      "界面作用"
+    ],
+    "abstract": "适合记录颗粒粒径、表面电荷、溶液离子强度、分离效率及实际水样适用性等要素。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  },
+  {
+    "id": "demo-06",
+    "status": "demo",
+    "title": "示例：木质素负载催化组分实现抗生素吸附—降解耦合",
+    "authors": "示例作者（待替换）",
+    "year": 2024,
+    "journal": "示例期刊信息（待替换）",
+    "category": "木质素",
+    "pollutants": [
+      "抗生素"
+    ],
+    "keywords": [
+      "催化",
+      "吸附—降解",
+      "绿色处理"
+    ],
+    "abstract": "可重点比较吸附富集、反应活性、降解产物、矿化率与催化循环稳定性。请填写实际文献链接。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  },
+  {
+    "id": "demo-07",
+    "status": "demo",
+    "title": "示例：半纤维素衍生功能网络用于染料选择性去除",
+    "authors": "示例作者（待替换）",
+    "year": 2026,
+    "journal": "示例期刊信息（待替换）",
+    "category": "半纤维素",
+    "pollutants": [
+      "染料"
+    ],
+    "keywords": [
+      "选择性",
+      "交联网络",
+      "再生"
+    ],
+    "abstract": "用于示范如何总结功能基团设计、目标污染物识别、选择性实验和材料重复使用结果。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  },
+  {
+    "id": "demo-08",
+    "status": "demo",
+    "title": "示例：纤维素基材料对药物残留的吸附机理模拟",
+    "authors": "示例作者（待替换）",
+    "year": 2025,
+    "journal": "示例期刊信息（待替换）",
+    "category": "纤维素",
+    "pollutants": [
+      "药物"
+    ],
+    "keywords": [
+      "分子动力学",
+      "DFT",
+      "吸附机理"
+    ],
+    "abstract": "可整理实验与分子模拟的对应关系，包括结合构型、吸附能、氢键和静电相互作用等证据。",
+    "doi": "",
+    "url": "",
+    "pdf": "",
+    "open_access": false
+  }
+]

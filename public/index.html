@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f8f5">
+  <meta name="description" content="一个专注于纤维素、半纤维素、木质素与水中新污染物去除的开放式科研文献目录。按材料、污染物、关键词检索和整理文献。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="Material Notes｜生物基环境材料文献库">
+  <meta property="og:description" content="聚焦木质纤维素基功能材料、水处理与新污染物去除的文献发现和研究笔记。">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+  <title>Material Notes｜生物基环境材料文献库</title>
+</head>
+<body>
+  <a class="skip-link" href="#library">跳转至文献检索</a>
+  <header class="site-header">
+    <div class="shell nav-content">
+      <a class="brand" href="/" aria-label="Material Notes 首页">
+        <span class="brand-symbol" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-copy"><strong>Material Notes<span class="brand-dot">.</span></strong><small>生物基环境材料文献库</small></span>
+      </a>
+      <nav class="main-nav" aria-label="主导航">
+        <a href="#library">探索文献</a>
+        <a href="#topics">研究方向</a>
+        <a href="#about">关于本站</a>
+      </nav>
+      <a class="nav-cta" href="#contribute">收录说明 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-content">
+        <div class="eyebrow"><span class="live-dot" aria-hidden="true"></span> INDEPENDENT RESEARCH LIBRARY <span class="eyebrow-no">/ 001</span></div>
+        <h1 id="hero-title">发现好文献。<br><em>连接新研究。</em></h1>
+        <p class="hero-description">围绕木质纤维素基功能材料、水污染控制与新污染物去除，建立一个可搜索、可筛选、持续更新的文献与研究笔记空间。</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#library">开始探索文献 <span aria-hidden="true">↗</span></a>
+          <a class="button button-text" href="#about">了解这个项目 <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="hero-annotation"><span class="line" aria-hidden="true"></span> 文献 · 方法 · 灵感，集中在一起</div>
+      </div>
+      <div class="hero-visual" aria-label="材料科学文献库装饰插画" role="img">
+        <div class="visual-top"><span>COLLECTION / RESEARCH</span><span>VOL. 01</span></div>
+        <div class="visual-orbit orbit-outer"></div>
+        <div class="visual-orbit orbit-middle"></div>
+        <div class="visual-orbit orbit-inner"></div>
+        <span class="visual-point point-one"></span><span class="visual-point point-two"></span><span class="visual-point point-three"></span>
+        <div class="visual-label label-one">CELLULOSE <span>01</span></div>
+        <div class="visual-label label-two">LIGNIN <span>02</span></div>
+        <div class="visual-center"><span>RESEARCH</span><strong>∞</strong><span>CONNECTIONS</span></div>
+        <div class="visual-bottom"><span>STRUCTURE × FUNCTION</span><span>2026 —</span></div>
+      </div>
+    </section>
+
+    <section class="stats-band" aria-label="文献库统计">
+      <div class="shell stats-grid">
+        <div class="stat"><span class="stat-number" id="stat-total">—</span><span class="stat-label">文献条目 <small>/ ARTICLES</small></span></div>
+        <div class="stat"><span class="stat-number" id="stat-categories">—</span><span class="stat-label">材料方向 <small>/ MATERIALS</small></span></div>
+        <div class="stat"><span class="stat-number" id="stat-open">—</span><span class="stat-label">开放获取 <small>/ OPEN ACCESS</small></span></div>
+        <div class="stat-stat-note"><span class="stat-note-mark" aria-hidden="true">✳</span><p>从结构设计到性能机制<br>用文献串联研究路径。</p></div>
+      </div>
+    </section>
+
+    <section class="explore-section shell" id="library" aria-labelledby="library-title">
+      <div class="section-intro">
+        <div>
+          <p class="section-kicker">01 / LITERATURE COLLECTION</p>
+          <h2 id="library-title">文献目录<span class="heading-period">.</span></h2>
+          <p class="section-description">按材料类型与污染物方向快速定位值得阅读的工作。</p>
+        </div>
+        <span class="section-side-note">CURATED FOR RESEARCHERS<br>BUILT FOR DISCOVERY</span>
+      </div>
+      <div class="search-panel">
+        <label class="search-field" for="paper-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.7"></circle><path d="m16 16 5 5"></path></svg>
+          <input id="paper-search" name="q" type="search" placeholder="搜索标题、作者、DOI、研究方法或污染物…" autocomplete="off">
+          <span class="search-key" aria-hidden="true">SEARCH</span>
+        </label>
+        <div class="search-options">
+          <label class="select-wrap"><span>污染物</span><select id="pollutant-select" aria-label="按污染物筛选"><option value="全部">全部污染物</option></select></label>
+          <label class="select-wrap"><span>排序</span><select id="sort-select" aria-label="排序"><option value="newest">年份：从新到旧</option><option value="oldest">年份：从旧到新</option><option value="title">标题：字母顺序</option></select></label>
+          <label class="checkbox-wrap"><input id="open-access-only" type="checkbox"><span>仅开放获取</span></label>
+        </div>
+      </div>
+      <div class="filter-heading"><span>按材料浏览</span><span>FILTER BY MATERIAL</span></div>
+      <div class="filter-chips" id="category-filters" aria-label="材料分类"></div>
+      <div class="results-header"><p id="result-message" aria-live="polite">正在载入文献…</p><button class="reset-button" type="button" id="reset-filters">清除筛选 <span aria-hidden="true">↺</span></button></div>
+      <div class="paper-grid" id="paper-grid" aria-live="polite"></div>
+      <div class="empty-state" id="empty-state" hidden><div class="empty-icon" aria-hidden="true">⌁</div><h3>没有找到匹配的文献</h3><p>试试减少筛选条件，或使用其他关键词。</p><button class="button button-primary" id="empty-reset" type="button">查看所有文献</button></div>
+      <p class="demo-note" id="demo-note">注：当前预置条目均为演示数据，请在上线前替换为真实文献元数据。</p>
+    </section>
+
+    <section class="topics-section" id="topics" aria-labelledby="topic-title">
+      <div class="shell">
+        <div class="section-intro topics-intro">
+          <div><p class="section-kicker">02 / RESEARCH AREAS</p><h2 id="topic-title">聚焦研究方向<span class="heading-period">.</span></h2><p class="section-description">将材料设计、污染物类型与去除机制组织成可检索的知识地图。</p></div>
+        </div>
+        <div class="topic-grid">
+          <div class="topic-card"><span class="topic-index">01</span><div class="topic-glyph glyph-cellulose" aria-hidden="true"><span></span><span></span><span></span></div><h3>纤维素基材料</h3><p>水凝胶、气凝胶、功能膜、表界面修饰与吸附分离。</p><span class="topic-english">CELLULOSE</span></div>
+          <div class="topic-card"><span class="topic-index">02</span><div class="topic-glyph glyph-hemicellulose" aria-hidden="true"><span></span><span></span><span></span></div><h3>半纤维素基材料</h3><p>分子结构调控、复合网络、刺激响应与绿色功能化。</p><span class="topic-english">HEMICELLULOSE</span></div>
+          <div class="topic-card"><span class="topic-index">03</span><div class="topic-glyph glyph-lignin" aria-hidden="true"><span></span><span></span><span></span></div><h3>木质素基材料</h3><p>芳香结构利用、碳材料、催化与污染物协同去除。</p><span class="topic-english">LIGNIN</span></div>
+          <div class="topic-card"><span class="topic-index">04</span><div class="topic-glyph glyph-pollutants" aria-hidden="true"><span></span><span></span><span></span></div><h3>新污染物控制</h3><p>抗生素、PFAS、微纳塑料及吸附—降解耦合研究。</p><span class="topic-english">EMERGING POLLUTANTS</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-section shell" id="about" aria-labelledby="about-title">
+      <div class="about-header"><p class="section-kicker">03 / OPEN SCIENCE</p><h2 id="about-title">让文献积累成为<br><em>长期资产。</em></h2></div>
+      <div class="about-content">
+        <p>这是一个无需数据库和后端的轻量级文献网站。文献记录集中保存为 JSON 数据，更新 GitHub 仓库后，Cloudflare Pages 可自动部署新版网页。</p>
+        <div class="about-points" id="contribute">
+          <div><span class="about-count">A</span><div><h3>规范收录</h3><p>记录题目、作者、年份、期刊、DOI、摘要、材料类别和污染物标签。</p></div></div>
+          <div><span class="about-count">B</span><div><h3>尊重版权</h3><p>优先分享 DOI、出版社页面及合法开放获取版本；仅在具备授权时存放全文 PDF。</p></div></div>
+          <div><span class="about-count">C</span><div><h3>自由扩展</h3><p>可增加专题文献、综述笔记、BibTeX、研究路线图及个人成果页面。</p></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="shell footer-inner"><div><strong>Material Notes<span class="brand-dot">.</span></strong><p>面向科研交流的独立文献目录。</p></div><div class="footer-middle">Built on GitHub × Cloudflare Pages<br><span>No third-party JavaScript or external font requests.</span></div><a href="#hero-title" class="footer-top">返回顶部 ↑</a></div>
+    <div class="shell footer-bottom"><span>© <span id="current-year">2026</span> Material Notes. All rights reserved.</span><span>文献著作权归原作者及出版方所有。</span></div>
+  </footer>
+</body>
+</html>
