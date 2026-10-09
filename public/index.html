@@ -12,7 +12,7 @@
   <meta property="og:description" content="聚焦木质纤维素基功能材料、水处理与新污染物去除的文献发现和研究笔记。">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <script src="/app.js" defer></script><script src="/community.js" defer></script><link rel="stylesheet" href="/community.css">
   <title>Material Notes｜生物基环境材料文献库</title>
 </head>
 <body>
@@ -24,11 +24,11 @@
         <span class="brand-copy"><strong>Material Notes<span class="brand-dot">.</span></strong><small>生物基环境材料文献库</small></span>
       </a>
       <nav class="main-nav" aria-label="主导航">
-        <a href="#library">探索文献</a>
+        <a href="#community-discovery">统一检索</a>
         <a href="#zotero">Zotero 文献</a>
         <a href="#about">关于本站</a>
       </nav>
-      <a class="nav-cta" href="#submit">分享文献 <span aria-hidden="true">↗</span></a>
+      <a class="nav-cta" href="#new-sharing">分享文献 <span aria-hidden="true">↗</span></a>
     </div>
   </header>
 
@@ -66,7 +66,17 @@
       </div>
     </section>
 
-    <section class="explore-section shell" id="library" aria-labelledby="library-title">
+        <section class="community-additions shell" id="community-discovery">
+      <div class="section-intro"><div><p class="section-kicker">COMMUNITY DISCOVERY</p><h2>科研社区统一检索<span class="heading-period">.</span></h2><p class="section-description">搜索 Zotero 文献、读者分享与科研知识笔记。只展示已通过的社区内容。</p></div></div>
+      <form id="unified-form" class="community-panel"><label for="unified-q">关键词</label><div class="community-rows"><input id="unified-q" type="search" maxlength="120" placeholder="标题、研究方法、作者或污染物"><select id="unified-source"><option value="all">全部来源</option><option value="zotero">Zotero</option><option value="community">读者文献</option><option value="knowledge">知识笔记</option></select><button type="submit">搜索</button></div></form>
+      <p id="unified-status" aria-live="polite">正在检索…</p><div id="unified-results"></div>
+      <div class="page-controls"><button id="unified-prev" type="button">上一页</button><span id="unified-page"></span><button id="unified-next" type="button">下一页</button></div>
+    </section>
+    <section class="community-additions shell" id="new-sharing"><div class="section-intro"><div><p class="section-kicker">OPEN KNOWLEDGE SHARING</p><h2>提交文献与科研知识<span class="heading-period">.</span></h2><p class="section-description">无需登录，只填写名称和自己的简要总结。提交后请保存回执码，以便查询审核状态。</p></div></div>
+      <form id="new-community-form" class="community-panel"><label for="new-kind">分享类型</label><select id="new-kind"><option value="community">文献分享</option><option value="knowledge">科研知识 / 方法笔记</option></select><label for="new-title">文献或知识名称</label><input id="new-title" required minlength="2" maxlength="200" placeholder="名称（2–200 字）"><label for="new-summary">简要总结</label><textarea id="new-summary" required minlength="10" maxlength="1200" placeholder="总结研究发现、方法或科研经验（10–1200 字）"></textarea><div style="position:absolute;left:-9999px" aria-hidden="true"><input id="new-website" tabindex="-1" autocomplete="off"></div><p>默认先审核后公开；自动放行仅在站长开启基础规则时生效。请分享自己的总结，不要公开受版权保护的全文。</p><button id="new-submit" type="submit">提交分享</button><p id="new-feedback" role="status"></p><div id="new-receipt" hidden><strong>请保存投稿回执</strong><code id="new-receipt-code"></code><button type="button" id="new-copy">复制回执</button></div></form>
+      <div class="community-panel"><label for="new-check-code">查询投稿状态（回执码）</label><div class="community-rows"><input id="new-check-code" placeholder="粘贴提交后收到的回执码"><button id="new-check-button" type="button">查询状态</button></div><p id="new-check-result" role="status"></p></div>
+    </section>
+<section class="explore-section shell" id="library" aria-labelledby="library-title">
       <div class="section-intro">
         <div>
           <p class="section-kicker">01 / LITERATURE COLLECTION</p>
