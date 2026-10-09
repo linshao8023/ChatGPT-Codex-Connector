@@ -25,7 +25,7 @@
       </a>
       <nav class="main-nav" aria-label="主导航">
         <a href="#library">探索文献</a>
-        <a href="#topics">研究方向</a>
+        <a href="#zotero">Zotero 文献</a>
         <a href="#about">关于本站</a>
       </nav>
       <a class="nav-cta" href="#submit">分享文献 <span aria-hidden="true">↗</span></a>
@@ -39,7 +39,7 @@
         <h1 id="hero-title">发现好文献。<br><em>连接新研究。</em></h1>
         <p class="hero-description">围绕木质纤维素基功能材料、水污染控制与新污染物去除，建立一个可搜索、可筛选、持续更新的文献与研究笔记空间。</p>
         <div class="hero-actions">
-          <a class="button button-primary" href="#library">开始探索文献 <span aria-hidden="true">↗</span></a>
+          <a class="button button-primary" href="#zotero">浏览 Zotero 文献 <span aria-hidden="true">↗</span></a>
           <a class="button button-text" href="#submit">我要分享文献 <span aria-hidden="true">→</span></a>
         </div>
         <div class="hero-annotation"><span class="line" aria-hidden="true"></span> 文献 · 方法 · 灵感，集中在一起</div>
@@ -95,10 +95,25 @@
       <p class="demo-note" id="demo-note">注：当前预置条目均为演示数据，请在上线前替换为真实文献元数据。</p>
     </section>
 
+    <section class="zotero-section shell" id="zotero" aria-labelledby="zotero-title">
+      <div class="section-intro"><div>
+        <p class="section-kicker">02 / CONNECTED BIBLIOGRAPHY</p>
+        <h2 id="zotero-title">Zotero 群组文献<span class="heading-period">.</span></h2>
+        <p class="section-description">只读同步 Shaolin Library 群组的文献元数据，不公开附件及个人阅读笔记。</p>
+      </div><a class="zotero-source" href="https://www.zotero.org/groups/6671409/shaolin_library" target="_blank" rel="noopener noreferrer">访问 Zotero 群组 ↗</a></div>
+      <div class="zotero-toolbar">
+        <label for="zotero-search">检索 Zotero 文献</label>
+        <div class="zotero-search-row"><input type="search" id="zotero-search" placeholder="搜索题目、作者、DOI、摘要或标签" autocomplete="off"><button type="button" id="zotero-search-btn">搜索</button></div>
+        <p id="zotero-status" class="zotero-status" role="status" aria-live="polite">正在加载 Zotero 文献…</p>
+      </div>
+      <div id="zotero-grid" class="zotero-grid"></div>
+      <div class="zotero-pagination" id="zotero-pagination" hidden><button type="button" id="zotero-prev">上一页</button><span id="zotero-page-text"></span><button type="button" id="zotero-next">下一页</button></div>
+    </section>
+
     <section class="topics-section" id="topics" aria-labelledby="topic-title">
       <div class="shell">
         <div class="section-intro topics-intro">
-          <div><p class="section-kicker">02 / RESEARCH AREAS</p><h2 id="topic-title">聚焦研究方向<span class="heading-period">.</span></h2><p class="section-description">将材料设计、污染物类型与去除机制组织成可检索的知识地图。</p></div>
+          <div><p class="section-kicker">03 / RESEARCH AREAS</p><h2 id="topic-title">聚焦研究方向<span class="heading-period">.</span></h2><p class="section-description">将材料设计、污染物类型与去除机制组织成可检索的知识地图。</p></div>
         </div>
         <div class="topic-grid">
           <div class="topic-card"><span class="topic-index">01</span><div class="topic-glyph glyph-cellulose" aria-hidden="true"><span></span><span></span><span></span></div><h3>纤维素基材料</h3><p>水凝胶、气凝胶、功能膜、表界面修饰与吸附分离。</p><span class="topic-english">CELLULOSE</span></div>
@@ -111,7 +126,7 @@
 
     <section class="submit-section shell" id="submit" aria-labelledby="submit-title">
       <div class="section-intro">
-        <div><p class="section-kicker">03 / COMMUNITY CONTRIBUTIONS</p><h2 id="submit-title">分享你读过的文献<span class="heading-period">.</span></h2><p class="section-description">任何读者都可以投稿，不用注册账号。只填写文献名称和你自己的简要总结，审核通过后公开展示。</p></div>
+        <div><p class="section-kicker">04 / COMMUNITY CONTRIBUTIONS</p><h2 id="submit-title">分享你读过的文献<span class="heading-period">.</span></h2><p class="section-description">任何读者都可以投稿，不用注册账号。只填写文献名称和你自己的简要总结，审核通过后公开展示。</p></div>
       </div>
       <div class="submit-layout">
         <form id="submission-form" class="submit-form" novalidate>
@@ -133,7 +148,7 @@
     </section>
 
     <section class="about-section shell" id="about" aria-labelledby="about-title">
-      <div class="about-header"><p class="section-kicker">04 / OPEN SCIENCE</p><h2 id="about-title">让文献积累成为<br><em>长期资产。</em></h2></div>
+      <div class="about-header"><p class="section-kicker">05 / OPEN SCIENCE</p><h2 id="about-title">让文献积累成为<br><em>长期资产。</em></h2></div>
       <div class="about-content">
         <p>精选文献集中保存为 JSON 数据，访客投稿由 Cloudflare Pages Functions 和 D1 数据库接收并经过人工审核。网站保持轻量、开放阅读。</p>
         <div class="about-points" id="contribute">
