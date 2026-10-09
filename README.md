@@ -1,13 +1,13 @@
 # Material Notes：生物基环境材料文献库
 
-一套适合 **GitHub 托管源码 + Cloudflare Pages 发布** 的纯静态文献分享网站模板。中文响应式界面，原生 HTML/CSS/JavaScript，无 npm、数据库、外部字体、第三方 JavaScript CDN 或后端。面向大陆访问时，可最大限度减少第三方域名造成的资源加载问题，但**不能保证 Cloudflare 海外网络在中国大陆各运营商下均稳定**。
+一套适合 **GitHub 托管源码 + Cloudflare Pages 发布** 的纯静态文献分享网站模板。中文响应式界面，原生 HTML/CSS/JavaScript，无需 npm 或外部字体、第三方 JavaScript CDN。站点页面为静态资源，访客投稿使用 Cloudflare Pages Functions + D1 后端。面向大陆访问时，可最大限度减少第三方域名造成的资源加载问题，但**不能保证 Cloudflare 海外网络在中国大陆各运营商下均稳定**。
 
 ## 一分钟了解
 
 - 标题、摘要、作者、期刊、年份、DOI、材料类型、污染物、关键词均可搜索。
 - 材料类别筛选、污染物筛选、年份排序、开放获取筛选。
 - 论文原文链接、合法 PDF 链接、复制引用信息。
-- 公开网站不需要用户登录，文献全部来自 `public/data/papers.json`。
+- 访客阅读和提交文献均无需登录；精选文献来自 `public/data/papers.json`，访客投稿保存在 Cloudflare D1，审核通过后单独展示。
 - `_headers` 带基础安全响应头；自带 `404.html`、`robots.txt`、`favicon.svg`。
 - **项目中 8 条记录均为演示条目，并非真实发表论文；请上线前替换。**
 
@@ -52,7 +52,7 @@ literature-library-pages/
 | Build command | **留空** |
 | Build output directory | `public` |
 | Root directory | 留空，使用仓库根目录 |
-| Environment variables | 不需要 |
+| Environment variables | 投稿功能建议添加 `RATE_LIMIT_SALT` Secret |
 
 5. 点击 **Save and Deploy**（或同等按钮）。
 6. 成功后会得到 `https://<你的项目名>.pages.dev`。
@@ -136,13 +136,17 @@ python3 -m http.server 8000 -d public
 
 浏览器访问 `http://localhost:8000`。**不要双击打开 `index.html`（`file://`），否则浏览器可能阻止读取 JSON 数据。**
 
-## ⑦ 后续个性化
+## ⑦ 访客分享功能（需要 D1）
+
+**重要：** 静态页面部署后，投稿不会自动启用。请按照仓库根目录的 [`SUBMISSIONS_SETUP.md`](SUBMISSIONS_SETUP.md) 完成 D1 建表和变量名为 `DB` 的绑定。访客只填写“文献名称”和“简要总结”，无需账号；记录默认待审核，只公开已批准内容。数据库操作示例与故障排查均在该文件中。投稿页面使用 Pages Functions，项目根目录存在 `functions/api/submissions.js`；请保持 GitHub Git 集成方式部署，勿只上传 `public` 目录。
+
+## ⑧ 后续个性化
 
 - 站点名称、主标题、简介：编辑 `public/index.html`。
 - 视觉配色、卡片样式：编辑 `public/styles.css`。
 - 文献内容：编辑 `public/data/papers.json`。
 - 正式域名确定后，可添加包含真实域名的 `sitemap.xml`，再到百度/必应站长平台提交。
-- 若要读者在线投稿、账号登录、评论、云端后台管理，需要后端或第三方服务；该模板目前不包含。
+- 已包含读者匿名投稿及 D1 人工审核流程。账号登录、评论、图形化管理后台目前不包含。
 
 ## 官方资料
 
