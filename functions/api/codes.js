@@ -118,7 +118,7 @@ export async function onRequestGet({env,request}) {
     const args=q?[q,q,q]:[];
     const count=await db.prepare("SELECT count(*) AS n FROM code_shares WHERE "+where).bind(...args).first();
     const rows=await db.prepare(
-      "SELECT id,COALESCE(full_title,title) AS title,initials,substr(COALESCE(full_code,code),1,280) AS preview,created_at FROM code_shares WHERE "
+      "SELECT id,COALESCE(full_title,title) AS title,initials,created_at FROM code_shares WHERE "
       +where+" "+sortExpression(sort)+" LIMIT ? OFFSET ?"
     ).bind(...args,perPage,(page-1)*perPage).all();
     return respond({ok:true,items:rows.results||[],total:Number(count?.n||0),page,per_page:perPage,sort});

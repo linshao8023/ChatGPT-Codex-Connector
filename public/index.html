@@ -88,12 +88,19 @@
     </section>
 
     <section class="codes-shell shell" id="code-analysis" aria-labelledby="code-analysis-title">
-<div class="codes-hero"><p class="section-kicker">RESEARCH / VISUALIZATION / CODE</p><h2 id="code-analysis-title">数据绘图<span>代码分析.</span></h2><p>收录绘图、数据处理与科研分析代码。公开条目可查看完整源码，一键复制后在本地环境使用。本站不会执行访客提交的代码。</p></div>
+<div class="codes-hero"><p class="section-kicker">RESEARCH / VISUALIZATION / CODE</p><h2 id="code-analysis-title">数据绘图<span>代码分析.</span></h2><p>收录绘图、数据处理与科研分析代码。每条记录可直接一键复制完整源码，本站不会执行访客提交的代码。</p></div>
 <section class="codes-section" id="code-library"><div class="codes-heading"><div><p class="section-kicker">01 / SHARED CODE</p><h2>公开代码库</h2></div><span id="code-result-status" role="status" aria-live="polite">正在加载…</span></div>
 <form id="code-search-form" class="codes-filter"><label for="code-search">搜索代码功能、内容或分享者</label><div class="codes-filter-row"><input id="code-search" type="search" maxlength="120" placeholder="如 matplotlib、拟合、热图、wsl"><select id="code-sort" aria-label="排序"><option value="newest">最新发布</option><option value="oldest">最早发布</option><option value="title">标题 A–Z</option><option value="title_desc">标题 Z–A</option></select><button type="submit">搜索</button></div></form>
-<div id="code-list" class="code-list"></div><div class="code-pages" id="code-pages" hidden><button type="button" id="code-prev">上一页</button><span id="code-page"></span><button type="button" id="code-next">下一页</button></div>
+<div id="code-list" class="code-list" aria-live="polite"></div>
+<div class="code-pages" id="code-pages" role="navigation" aria-label="公开代码库分页">
+  <button type="button" id="code-prev">上一页</button>
+  <span id="code-page">第 1 / 1 页</span>
+  <button type="button" id="code-next">下一页</button>
+  <input id="code-jump" type="number" min="1" max="1" step="1" value="1" inputmode="numeric" aria-label="跳转到代码库页码">
+  <button type="button" id="code-go">跳转</button>
+</div>
 </section>
-<section class="codes-section" id="code-detail" hidden><div class="codes-heading"><div><p class="section-kicker">02 / SOURCE CODE</p><h2 id="code-detail-title">完整代码</h2></div><button type="button" id="code-copy">复制全部代码</button></div><p id="code-detail-meta"></p><pre class="code-preview"><code id="code-full"></code></pre><button type="button" id="code-close">收起代码</button><p id="code-copy-status" aria-live="polite"></p></section>
+
 
     </section>
     <section class="submission-center shell" id="submission-center" aria-labelledby="submission-heading">
