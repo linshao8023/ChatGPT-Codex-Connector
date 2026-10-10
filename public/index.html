@@ -12,7 +12,7 @@
   <meta property="og:description" content="聚焦木质纤维素基功能材料、水处理与新污染物去除的文献发现和研究笔记。">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script><script src="/community.js" defer></script><link rel="stylesheet" href="/community.css"><link rel="stylesheet" href="/codes.css"><script src="/codes.js" defer></script>
+  <script src="/app.js" defer></script><script src="/community.js" defer></script><link rel="stylesheet" href="/community.css"><link rel="stylesheet" href="/codes.css"><script src="/codes.js" defer></script><link rel="stylesheet" href="/daily.css"><script src="/daily.js" defer></script>
   <title>Material Notes｜生物基环境材料文献库</title>
 </head>
 <body>
@@ -26,35 +26,38 @@
       <nav class="main-nav" aria-label="主导航">
         <a href="#community-discovery">统一检索</a>
         <a href="#zotero">Zotero 文献</a>
-        <a href="#new-sharing">投稿分享</a><a href="#code-analysis">数据绘图代码分析</a>
+        <a href="#daily-digest">每日简报</a><a href="#community-discovery">文献检索</a><a href="#code-analysis">代码分析</a><a href="#submission-center">投稿中心</a>
       </nav>
-      <a class="nav-cta" href="#new-sharing">分享文献 <span aria-hidden="true">↗</span></a>
+      <a class="nav-cta" href="#submission-center">投稿中心 <span aria-hidden="true">↗</span></a>
     </div>
   </header>
 
   <main>
-    <section class="hero shell" aria-labelledby="hero-title">
-      <div class="hero-content">
-        <div class="eyebrow"><span class="live-dot" aria-hidden="true"></span> INDEPENDENT RESEARCH LIBRARY <span class="eyebrow-no">/ 001</span></div>
-        <h1 id="hero-title">发现好文献。<br><em>连接新研究。</em></h1>
-        <p class="hero-description">围绕木质纤维素基功能材料、水污染控制与新污染物去除，建立一个可搜索、可筛选、持续更新的文献与研究笔记空间。</p>
-        <div class="hero-actions">
-          <a class="button button-primary" href="#zotero">浏览 Zotero 文献 <span aria-hidden="true">↗</span></a>
-          <a class="button button-text" href="#new-sharing">我要分享文献 <span aria-hidden="true">→</span></a>
-        </div>
-        <div class="hero-annotation"><span class="line" aria-hidden="true"></span> 文献 · 方法 · 灵感，集中在一起</div>
+    <section class="daily-hero shell" id="daily-digest" aria-labelledby="daily-title">
+      <div class="daily-hero-heading">
+        <div><p class="section-kicker">01 / DAILY AI RESEARCH BRIEF · HUMAN CURATED</p>
+        <h1 id="daily-title">每日 AI 前沿文献<span>.</span></h1>
+        <p>每日十篇高水平期刊研究速览。按日期阅读最新简报、点击查看每篇研究要点，或浏览往期推送。</p>
+        <p class="daily-disclaimer">所选论文及“一区 / Q1”期刊分区来自投稿简报，本站不会自动核验，请以期刊和论文原始资料为准。</p></div>
+        <div class="daily-heading-actions"><a href="#daily-history">往期推送 ↓</a><a href="#submission-center" data-open-submission="digest">提交简报 ↗</a></div>
       </div>
-      <div class="hero-visual" aria-label="材料科学文献库装饰插画" role="img">
-        <div class="visual-top"><span>COLLECTION / RESEARCH</span><span>VOL. 01</span></div>
-        <div class="visual-orbit orbit-outer"></div>
-        <div class="visual-orbit orbit-middle"></div>
-        <div class="visual-orbit orbit-inner"></div>
-        <span class="visual-point point-one"></span><span class="visual-point point-two"></span><span class="visual-point point-three"></span>
-        <div class="visual-label label-one">CELLULOSE <span>01</span></div>
-        <div class="visual-label label-two">LIGNIN <span>02</span></div>
-        <div class="visual-center"><span>RESEARCH</span><strong>∞</strong><span>CONNECTIONS</span></div>
-        <div class="visual-bottom"><span>STRUCTURE × FUNCTION</span><span>2026 —</span></div>
+      <div class="daily-current">
+        <div class="daily-current-top"><span>DAILY BRIEF / 10 PAPERS</span><span id="daily-current-date">等待发布</span></div>
+        <h2 id="daily-current-title">最新一期研究简报</h2>
+        <p id="daily-current-status" role="status" aria-live="polite">正在读取最新简报…</p>
+        <div id="daily-paper-list" class="daily-paper-list"></div>
       </div>
+      <div id="daily-paper-detail" class="daily-detail" hidden>
+        <div class="daily-detail-head"><div><small id="daily-detail-number"></small><h3 id="daily-detail-title"></h3></div><button type="button" id="daily-detail-close">关闭详情 ×</button></div>
+        <pre id="daily-detail-body"></pre>
+      </div>
+    </section>
+    <section class="daily-history shell" id="daily-history" aria-labelledby="daily-history-title">
+      <div class="section-intro"><div><p class="section-kicker">RESEARCH DIGEST ARCHIVE</p><h2 id="daily-history-title">往期 AI 文献简报<span class="heading-period">.</span></h2>
+      <p class="section-description">按发布日期倒序排列。点击任意一期即可查看十篇摘要与研究详情。</p></div></div>
+      <p id="daily-history-status" role="status" aria-live="polite">正在加载往期…</p>
+      <div id="daily-history-list" class="daily-history-list"></div>
+      <div id="daily-history-pages" class="daily-history-pages" hidden><button type="button" id="daily-history-prev">上一页</button><span id="daily-history-page"></span><button type="button" id="daily-history-next">下一页</button></div>
     </section>
 
     
@@ -65,26 +68,7 @@
       <p id="unified-status" aria-live="polite">正在检索…</p><div id="unified-results"></div>
       <div class="page-controls"><button id="unified-prev" type="button">上一页</button><span id="unified-page"></span><button id="unified-next" type="button">下一页</button><input id="unified-jump" type="number" min="1" value="1" aria-label="跳转页码"><button id="unified-go" type="button">跳转</button></div>
     </section>
-    <section class="community-additions shell" id="new-sharing">
-      <div class="section-intro"><div>
-        <p class="section-kicker">COMMUNITY SUBMISSION</p>
-        <h2>分享你读过的文献<span class="heading-period">.</span></h2>
-        <p class="section-description">填写文献题目、简要总结、姓名首字母与发布暗号，验证通过后立即公开。</p>
-      </div></div>
-      <form id="new-community-form" class="community-panel">
-        <label for="new-title">文献题目 <span aria-hidden="true">*</span></label>
-        <input id="new-title" name="title" type="text" required maxlength="2000" placeholder="文献题目（6–50 词）" autocomplete="off"><small class="field-counter" id="new-title-count" aria-live="polite">0 / 6–50 词</small>
-        <label for="new-summary">简要总结 <span aria-hidden="true">*</span></label>
-        <textarea id="new-summary" name="summary" required maxlength="20000" rows="6" placeholder="用自己的语言总结研究发现（24–200 词）"></textarea><small class="field-counter" id="new-summary-count" aria-live="polite">0 / 24–200 词</small>
-        <label for="new-initials">提交者姓名首字母 <span aria-hidden="true">*</span></label>
-        <input id="new-initials" name="submitter_initials" type="text" required minlength="1" maxlength="12" pattern="[A-Za-z]{1,12}" autocomplete="off" placeholder="例如：王少林 → wsl">
-        <label for="new-code">发布暗号 <span aria-hidden="true">*</span></label>
-        <input id="new-code" name="approval_code" type="password" required maxlength="128" autocomplete="off" placeholder="填写发布暗号">
-        <p class="submit-hint">题目 6–50 词、总结 24–200 词，并且暗号正确，即可自动通过并公开。中文按字、英文按词统计。请勿公开受版权保护的全文。</p>
-        <button id="new-submit" type="submit">提交并公开文献</button>
-        <p id="new-feedback" role="status" aria-live="polite"></p>
-      </form>
-    </section>
+
 <section class="zotero-section shell" id="zotero" aria-labelledby="zotero-title">
       <div class="section-intro">
         <div><p class="section-kicker">02 / CONNECTED BIBLIOGRAPHY</p>
@@ -109,7 +93,52 @@
 <div id="code-list" class="code-list"></div><div class="code-pages" id="code-pages" hidden><button type="button" id="code-prev">上一页</button><span id="code-page"></span><button type="button" id="code-next">下一页</button></div>
 </section>
 <section class="codes-section" id="code-detail" hidden><div class="codes-heading"><div><p class="section-kicker">02 / SOURCE CODE</p><h2 id="code-detail-title">完整代码</h2></div><button type="button" id="code-copy">复制全部代码</button></div><p id="code-detail-meta"></p><pre class="code-preview"><code id="code-full"></code></pre><button type="button" id="code-close">收起代码</button><p id="code-copy-status" aria-live="polite"></p></section>
-<section class="codes-section" id="code-publish"><div class="codes-heading"><div><p class="section-kicker">03 / SHARE YOUR WORK</p><h2>提交数据绘图与分析代码</h2></div></div><form id="code-form" class="code-publish-form">
+
+    </section>
+    <section class="submission-center shell" id="submission-center" aria-labelledby="submission-heading">
+      <div class="section-intro"><div><p class="section-kicker">04 / CONTRIBUTE & SHARE</p><h2 id="submission-heading">科研内容投稿中心<span class="heading-period">.</span></h2>
+      <p class="section-description">选择提交类型。三个独立表单共用一个区域，已有文献与代码投稿规则保持不变。</p></div></div>
+      <div class="submission-tabs" role="tablist" aria-label="选择投稿类型">
+        <button type="button" role="tab" aria-selected="true" aria-controls="daily-submit-panel" id="submission-tab-digest" data-submission-tab="digest">每日 AI 简报</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="new-sharing" id="submission-tab-paper" data-submission-tab="paper" tabindex="-1">分享文献</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="code-publish" id="submission-tab-code" data-submission-tab="code" tabindex="-1">分享分析代码</button>
+      </div>
+      <section class="submit-panel" id="daily-submit-panel" role="tabpanel" aria-labelledby="submission-tab-digest">
+        <div class="daily-submit-intro"><h3>提交每日 AI 总结前沿文献</h3>
+        <p>手动提交你已经生成并核对过的十篇文献简报。仅展示已提交内容，不会自动生成。</p></div>
+        <form id="daily-submit-form" class="daily-submit-form">
+          <label for="daily-submit-date">推送日期 *</label><input id="daily-submit-date" type="date" required>
+          <label for="daily-submit-headline">本期标题 *</label><input id="daily-submit-headline" type="text" maxlength="120" minlength="2" required placeholder="例如：今日生物基功能材料与新污染物研究精选">
+          <label for="daily-submit-body">简报内容（10 篇，总计不超过 2000 字）*</label>
+          <textarea id="daily-submit-body" maxlength="2000" rows="18" required placeholder="1. 文献标题｜期刊名称\n研究重点、方法与发现……\n\n2. 文献标题｜期刊名称\n研究重点……\n\n请依次编号到 10."></textarea>
+          <small class="field-counter" id="daily-submit-count">0 / 2000 字符</small>
+          <p class="daily-submit-note">请用 1.、2. …… 10. 分别标记十篇文献。研究内容、期刊分区及引用真实性需在发布前人工确认。</p>
+          <label for="daily-submit-token">管理员发布密钥 *</label><input id="daily-submit-token" type="password" autocomplete="off" required placeholder="使用后台审核所用的管理员密钥">
+          <button type="submit" id="daily-submit-button">发布每日简报 ↗</button>
+          <p id="daily-submit-feedback" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+          <section class="submit-panel" id="new-sharing" role="tabpanel" aria-labelledby="submission-tab-paper" hidden>
+      <div class="section-intro"><div>
+        <p class="section-kicker">COMMUNITY SUBMISSION</p>
+        <h2>分享你读过的文献<span class="heading-period">.</span></h2>
+        <p class="section-description">填写文献题目、简要总结、姓名首字母与发布暗号，验证通过后立即公开。</p>
+      </div></div>
+      <form id="new-community-form" class="community-panel">
+        <label for="new-title">文献题目 <span aria-hidden="true">*</span></label>
+        <input id="new-title" name="title" type="text" required maxlength="2000" placeholder="文献题目（6–50 词）" autocomplete="off"><small class="field-counter" id="new-title-count" aria-live="polite">0 / 6–50 词</small>
+        <label for="new-summary">简要总结 <span aria-hidden="true">*</span></label>
+        <textarea id="new-summary" name="summary" required maxlength="20000" rows="6" placeholder="用自己的语言总结研究发现（24–200 词）"></textarea><small class="field-counter" id="new-summary-count" aria-live="polite">0 / 24–200 词</small>
+        <label for="new-initials">提交者姓名首字母 <span aria-hidden="true">*</span></label>
+        <input id="new-initials" name="submitter_initials" type="text" required minlength="1" maxlength="12" pattern="[A-Za-z]{1,12}" autocomplete="off" placeholder="例如：王少林 → wsl">
+        <label for="new-code">发布暗号 <span aria-hidden="true">*</span></label>
+        <input id="new-code" name="approval_code" type="password" required maxlength="128" autocomplete="off" placeholder="填写发布暗号">
+        <p class="submit-hint">题目 6–50 词、总结 24–200 词，并且暗号正确，即可自动通过并公开。中文按字、英文按词统计。请勿公开受版权保护的全文。</p>
+        <button id="new-submit" type="submit">提交并公开文献</button>
+        <p id="new-feedback" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+      <section class="submit-panel" id="code-publish" role="tabpanel" aria-labelledby="submission-tab-code" hidden><div class="codes-heading"><div><p class="section-kicker">03 / SHARE YOUR WORK</p><h2>提交数据绘图与分析代码</h2></div></div><form id="code-form" class="code-publish-form">
 <label for="code-title">分享代码功能名称 <span>*</span></label><input id="code-title" required maxlength="2000" minlength="2" placeholder="代码功能名称（少于 30 词）"><small class="field-counter" id="code-title-count" aria-live="polite">0 / 29 词</small>
 <label for="code-body">详细代码 <span>*</span></label><textarea id="code-body" required minlength="10" maxlength="200000" rows="15" spellcheck="false" placeholder="粘贴完整代码（10–200,000 字符），建议添加依赖与运行说明。"></textarea><small class="field-counter" id="code-body-count" aria-live="polite">0 / 200,000 字符</small>
 <label for="code-author">提交者姓名首字母 <span>*</span></label><input id="code-author" required pattern="[A-Za-z]{1,12}" maxlength="12" placeholder="例如：王少林 → wsl">
@@ -118,7 +147,7 @@
     </section>
     </main>
   <footer class="site-footer">
-    <div class="shell footer-inner"><div><strong>Material Notes<span class="brand-dot">.</span></strong><p>面向科研交流的独立文献目录。</p></div><div class="footer-middle">Built on GitHub × Cloudflare Pages<br><span>No third-party JavaScript or external font requests.</span></div><a href="#hero-title" class="footer-top">返回顶部 ↑</a></div>
+    <div class="shell footer-inner"><div><strong>Material Notes<span class="brand-dot">.</span></strong><p>面向科研交流的独立文献目录。</p></div><div class="footer-middle">Built on GitHub × Cloudflare Pages<br><span>No third-party JavaScript or external font requests.</span></div><a href="#daily-digest" class="footer-top">返回顶部 ↑</a></div>
     <div class="shell footer-bottom"><span>© <span id="current-year">2026</span> Material Notes. All rights reserved.</span><span>文献著作权归原作者及出版方所有。</span></div>
   </footer>
 </body>
