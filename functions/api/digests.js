@@ -26,33 +26,36 @@ function validDate(value){
   return !Number.isNaN(date.getTime())&&date.toISOString().slice(0,10)===value;
 }
 
-// Accept standard numbered headings, including "### 1. ..." and "**1. ...**".
-// Do not turn user-authored Markdown into HTML.
-function parseTenPapers(value){
-  const items=[];
+// Any plain-text or AI-generated summary can be published without numbering.
+// Recognize optional numbered or Markdown headings for per-section browsing.
+// When the text has no reliable sections, the frontend offers full-text reading.
+function parseDigestEntries(value){
   const lines=value.replace(/\r\n?/g,"\n").split("\n");
+  const sections=[];
   let current=null;
+  function finishSection(){
+    if(!current)return;
+    sections.push({
+      number:sections.length+1,
+      title:current.title,
+      text:current.lines.join("\n").trim()
+    });
+    current=null;
+  }
   for(const line of lines){
-    const match=line.match(/^\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(10|[1-9])[.．、)）:：]\s*(\S.*?)\s*(?:\*\*)?\s*$/u);
-    if(match){
-      const number=Number(match[1]);
-      if(number!==items.length+1){
-        throw new Error("请按 1. 至 10. 的顺序列出十篇文献，每篇单独起一行");
-      }
-      const title=match[2].replace(/\*+$/,"").trim();
-      if(!title)throw new Error("第 "+number+" 篇文献缺少标题");
-      current={number,title:title.slice(0,180),text:line.trim(),details:[]};
-      items.push(current);
+    const numbered=line.match(/^\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:第\s*)?\d{1,2}(?:\s*篇)?[.．、)）:：]\s*(.+?)\s*(?:\*\*)?\s*$/u);
+    const heading=line.match(/^\s*#{1,4}\s+(.+?)\s*$/u);
+    const rawTitle=numbered?.[1]||heading?.[1]||"";
+    const title=rawTitle.replace(/^\*+|\*+$/g,"").trim();
+    if(title.length>=3){
+      finishSection();
+      current={title:title.slice(0,180),lines:[line]};
     }else if(current){
-      current.details.push(line);
+      current.lines.push(line);
     }
   }
-  if(items.length!==10)throw new Error("每期简报需包含 10 篇文献，请使用 1. 至 10. 编号（目前识别到 "+items.length+" 篇）");
-  return items.map(item=>({
-    number:item.number,
-    title:item.title,
-    text:[item.text,...item.details].join("\n").trim()
-  }));
+  finishSection();
+  return sections;
 }
 
 function publicIssue(row){
@@ -62,7 +65,7 @@ function publicIssue(row){
     issue_date:row.issue_date,
     headline:row.headline,
     body:row.full_body||row.body,
-    entries:parseTenPapers(row.full_body||row.body),
+    entries:parseDigestEntries(row.full_body||row.body),
     updated_at:row.updated_at
   };
 }
@@ -128,10 +131,8 @@ export async function onRequestPost({request,env}){
     return respond({ok:false,error:"本期标题需 2–120 个字符"},400);
   }
   if(lengthOf(body)<50||lengthOf(body)>ISSUE_LIMIT||invalidText(body)){
-    return respond({ok:false,error:"推送正文需 50–10,000 字符（包含十篇文献）"},400);
+    return respond({ok:false,error:"推送正文需 50–10,000 字符"},400);
   }
-  try{parseTenPapers(body);}
-  catch(error){return respond({ok:false,error:error.message},400);}
   try{
     await ensureTable(db);
     await db.prepare(

@@ -37,12 +37,12 @@
       <div class="daily-hero-heading">
         <div><p class="section-kicker">01 / DAILY AI RESEARCH BRIEF · HUMAN CURATED</p>
         <h1 id="daily-title">每日 AI 前沿文献<span>.</span></h1>
-        <p>每日十篇高水平期刊研究速览。按日期阅读最新简报、点击查看每篇研究要点，或浏览往期推送。</p>
+        <p>每日高水平期刊研究速览。阅读最新简报的完整内容、浏览可识别的研究章节，或查看往期推送。</p>
         <p class="daily-disclaimer">所选论文及“一区 / Q1”期刊分区来自投稿简报，本站不会自动核验，请以期刊和论文原始资料为准。</p></div>
         <div class="daily-heading-actions"><a href="#daily-history">往期推送 ↓</a><a href="#submission-center" data-open-submission="digest">提交简报 ↗</a></div>
       </div>
       <div class="daily-current">
-        <div class="daily-current-top"><span>DAILY BRIEF / 10 PAPERS</span><span id="daily-current-date">等待发布</span></div>
+        <div class="daily-current-top"><span>DAILY BRIEF / RESEARCH DIGEST</span><span id="daily-current-date">等待发布</span></div>
         <h2 id="daily-current-title">最新一期研究简报</h2>
         <p id="daily-current-status" role="status" aria-live="polite">正在读取最新简报…</p>
         <div id="daily-paper-list" class="daily-paper-list"></div>
@@ -54,7 +54,7 @@
     </section>
     <section class="daily-history shell" id="daily-history" aria-labelledby="daily-history-title">
       <div class="section-intro"><div><p class="section-kicker">RESEARCH DIGEST ARCHIVE</p><h2 id="daily-history-title">往期 AI 文献简报<span class="heading-period">.</span></h2>
-      <p class="section-description">按发布日期倒序排列。点击任意一期即可查看十篇摘要与研究详情。</p></div></div>
+      <p class="section-description">按发布日期倒序排列。点击任意一期即可阅读当期完整文献简报。</p></div></div>
       <p id="daily-history-status" role="status" aria-live="polite">正在加载往期…</p>
       <div id="daily-history-list" class="daily-history-list"></div>
       <div id="daily-history-pages" class="daily-history-pages" hidden><button type="button" id="daily-history-prev">上一页</button><span id="daily-history-page"></span><button type="button" id="daily-history-next">下一页</button></div>
@@ -105,14 +105,14 @@
       </div>
       <section class="submit-panel" id="daily-submit-panel" role="tabpanel" aria-labelledby="submission-tab-digest">
         <div class="daily-submit-intro"><h3>提交每日 AI 总结前沿文献</h3>
-        <p>手动提交你已经生成并核对过的十篇文献简报。仅展示已提交内容，不会自动生成。</p></div>
+        <p>直接粘贴你准备好的 AI 前沿文献简报，不需要给文献编号或调整格式。仅展示已提交内容，不会自动生成。</p></div>
         <form id="daily-submit-form" class="daily-submit-form">
           <label for="daily-submit-date">推送日期 *</label><input id="daily-submit-date" type="date" required>
           <label for="daily-submit-headline">本期标题 *</label><input id="daily-submit-headline" type="text" maxlength="120" minlength="2" required placeholder="例如：今日生物基功能材料与新污染物研究精选">
-          <label for="daily-submit-body">简报内容（10 篇，总计不超过 10,000 字）*</label>
-          <textarea id="daily-submit-body" maxlength="10000" rows="18" required placeholder="1. 文献标题｜期刊名称\n研究重点、方法与发现……\n\n2. 文献标题｜期刊名称\n研究重点……\n\n请依次编号到 10."></textarea>
+          <label for="daily-submit-body">简报正文（最多 10,000 字符）*</label>
+          <textarea id="daily-submit-body" maxlength="10000" rows="18" required placeholder="直接粘贴完整 AI 文献简报即可，无需编号、无需指定格式。"></textarea>
           <small class="field-counter" id="daily-submit-count">0 / 10,000 字符</small>
-          <p class="daily-submit-note">请用 1.、2. …… 10. 分别标记十篇文献。研究内容、期刊分区及引用真实性需在发布前人工确认。</p>
+          <p class="daily-submit-note">无需编号或分段标记，粘贴正文即可发布。网站保留完整原文，供访客查看及浏览往期。</p>
           <label for="daily-submit-token">发布暗号 *</label><input id="daily-submit-token" type="password" autocomplete="off" required placeholder="输入统一发布暗号">
           <button type="submit" id="daily-submit-button">发布每日简报 ↗</button>
           <p id="daily-submit-feedback" role="status" aria-live="polite"></p>

@@ -5,7 +5,7 @@ let activeIssue=null,archivePage=1,archivePages=1;
 async function request(url,options){const r=await fetch(url,{cache:"no-store",...options});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||"操作失败");return d;}
 function showEntry(entry){
  const panel=$("daily-paper-detail");
- $("daily-detail-number").textContent="RESEARCH PAPER / "+String(entry.number).padStart(2,"0");
+ $("daily-detail-number").textContent=entry.kind==="full"?"FULL RESEARCH DIGEST / 全文":"RESEARCH SECTION / "+String(entry.number).padStart(2,"0");
  $("daily-detail-title").textContent=entry.title;
  $("daily-detail-body").textContent=entry.text;
  panel.hidden=false;panel.scrollIntoView({behavior:"smooth",block:"start"});
@@ -21,10 +21,18 @@ function renderIssue(issue){
  }
  $("daily-current-date").textContent=issue.issue_date;
  $("daily-current-title").textContent=issue.headline;
- $("daily-current-status").textContent="本期收录 "+issue.entries.length+" 篇文献｜点击任意标题查看详细研究摘要。期刊分区需自行核验。";
- issue.entries.forEach(entry=>{
+ const sections=Array.isArray(issue.entries)?issue.entries:[];
+ $("daily-current-status").textContent=sections.length
+   ?"本期简报已发布，可直接阅读全文，或按已识别的章节浏览。期刊分区需自行核验。"
+   :"本期简报已发布，点击下方查看完整内容。期刊分区需自行核验。";
+ const full=el("button",null,"daily-paper-item daily-read-full");
+ full.type="button";
+ full.append(el("span","全文","daily-paper-number"),el("strong","查看完整简报"),el("span","阅读全部内容 ↗","daily-paper-arrow"));
+ full.addEventListener("click",()=>showEntry({kind:"full",title:issue.headline,text:issue.body}));
+ list.append(full);
+ sections.forEach(entry=>{
    const b=el("button",null,"daily-paper-item");b.type="button";
-   b.append(el("span",String(entry.number).padStart(2,"0"),"daily-paper-number"),el("strong",entry.title),el("span","阅读详情 ↗","daily-paper-arrow"));
+   b.append(el("span",String(entry.number).padStart(2,"0"),"daily-paper-number"),el("strong",entry.title),el("span","阅读该章节 ↗","daily-paper-arrow"));
    b.addEventListener("click",()=>showEntry(entry));list.append(b);
  });
 }
@@ -40,7 +48,7 @@ async function loadArchive(){
   status.textContent=d.total?"共有 "+d.total+" 期简报":"暂无往期推送。";
   d.issues.forEach(item=>{
     const b=el("button",null,"daily-history-card");b.type="button";
-    b.append(el("small",item.issue_date),el("strong",item.headline),el("span","查看本期十篇文献 ↗"));
+    b.append(el("small",item.issue_date),el("strong",item.headline),el("span","查看本期完整简报 ↗"));
     b.addEventListener("click",async()=>{
       b.disabled=true;try{const issue=await request("/api/digests?id="+item.id);renderIssue(issue.issue);$("daily-digest").scrollIntoView({behavior:"smooth"});}
       catch(error){status.textContent="读取失败："+error.message;}finally{b.disabled=false;}
