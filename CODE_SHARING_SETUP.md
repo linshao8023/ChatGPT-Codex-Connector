@@ -6,13 +6,13 @@
 
 1. **新版已支持自动初始化 D1 代码表。** 第一次访问代码库或提交时，程序会安全地创建缺失的 `code_shares`、`code_share_attempts` 表；不会删除文献、投稿或 Zotero 记录。如果你更希望手动初始化，也可在 D1 Console 执行 [code_shares_schema.sql](./code_shares_schema.sql)，可重复运行。
 2. Cloudflare Pages 项目 → Settings → Variables and Secrets → 新增 Secret：
-   - **Name**: `CODE_SHARING_APPROVAL_CODE`
+   - **Name**: `PUBLICATION_APPROVAL_CODE`
    - **Value**: 你指定的代码发布暗号 **2029**
    - **Type**: Secret，不要在 GitHub、JS、HTML 中填写实际值
 3. 确保 `DB` D1 绑定正常，部署 `material-notes-pages` 的最新代码。
 4. 依次检查首页 `/#code-analysis`、`/api/codes` 以及首页 `/#community-discovery`。
 
-原文献投稿密钥 `SUBMISSION_APPROVAL_CODE` 与代码库密钥相互独立。代码提交采用 **功能名称少于 30 词（至少 2 字符）、10–200,000 字符代码正文、1–12 位英文字母姓名首字母、正确暗号** 的验证规则，通过后自动批准并写入 D1。后端限制相同来源每小时最多 6 次代码投稿尝试，阻止重复内容。
+文献、代码和每日简报使用同一个 `PUBLICATION_APPROVAL_CODE`，值为 `2029`；管理员审核仍使用独立的 `ADMIN_REVIEW_TOKEN`。代码提交采用 **功能名称少于 30 词（至少 2 字符）、10–200,000 字符代码正文、1–12 位英文字母姓名首字母、正确暗号** 的验证规则，通过后自动批准并写入 D1。后端限制相同来源每小时最多 6 次代码投稿尝试，阻止重复内容。
 
 **安全提示：** 2029 是容易猜测的弱共享暗号。建议把它视为小范围测试密钥；正式公开使用前改用更长随机字符串，结合 Cloudflare WAF 与独立管理员审核。永远不要在提交的代码中放入 API 密钥、访问令牌、密码或隐私数据。代码正文可能无法安全运行，本站只负责存储和展示，不提供代码运行环境。
 
@@ -27,7 +27,7 @@
 ## 验收
 
 - [ ] 访问首页代码区后确认两张代码表已自动创建（或已手动执行 `code_shares_schema.sql`）
-- [ ] 已设置生产环境 `CODE_SHARING_APPROVAL_CODE` Secret 并重新部署
+- [ ] 已设置生产环境 `PUBLICATION_APPROVAL_CODE` Secret 并重新部署
 - [ ] 页面提交真实的测试代码，错误暗号不能发布、正确暗号能公开
 - [ ] 首页“数据绘图代码分析”的独立检索可以搜索到代码；科研社区统一检索不再返回代码
 - [ ] “查看并复制代码”可打开完整代码并复制文本

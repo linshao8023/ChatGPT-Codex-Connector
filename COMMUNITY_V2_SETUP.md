@@ -7,12 +7,12 @@
 **新增必要迁移：** 在当前 D1 数据库 Console 执行 [submission_initials_upgrade.sql](./submission_initials_upgrade.sql)（或尚未执行过 community_upgrade.sql 时，执行其最新版本）。它只建立投稿署名关联表，不会修改原有文献记录。若不执行，新的投稿将明确返回 503 提示，不会出现投稿保存成功但署名丢失的情况。公开列表只显示署名首字母，不显示提交者 IP。
 
 
-1. 登录 Cloudflare Pages → 对应项目 → Settings → Variables and Secrets，新建 **Secret**，变量名 **`SUBMISSION_APPROVAL_CODE`**，变量值输入你指定的暗号 **2026**。
+1. 登录 Cloudflare Pages → 对应项目 → Settings → Variables and Secrets，新建 **Secret**，变量名 **`PUBLICATION_APPROVAL_CODE`**，变量值输入统一暗号 **2029**。
 2. 确认 D1 binding 变量名 **`DB`** 指向原来的 `material-notes-submissions` 数据库。
 3. 重新部署最新 GitHub `material-notes-pages` 分支（如需，在 Preview 环境分别绑定 Secret）。
 4. 页面打开后填入 6 字符以上标题、24 字符以上总结与正确暗号，提交后会显示“投稿成功，已自动公开”。其他访客不需要 GitHub 账号。
 
-> **暗号安全提醒：** `2026` 是非常弱的共享暗号，知道暗号的任何人都能发布内容。将它配置成 Cloudflare Secret 能防止它直接出现在前端源代码，但并不能阻止猜测或转发。公开运营建议换成长随机暗号、启用 WAF 限速与举报/撤稿流程。只有 Cloudflare 环境 Secret 中设置实际值后才能生效；不要把它硬编码到公开 GitHub 代码中。密钥未配置或错误会明确失败，不会自动通过。
+> **暗号安全提醒：** `2029` 是非常弱的共享暗号，知道暗号的任何人都能发布内容。将它配置成 Cloudflare Secret 能防止它直接出现在前端源代码，但并不能阻止猜测或转发。公开运营建议换成长随机暗号、启用 WAF 限速与举报/撤稿流程。只有 Cloudflare 环境 Secret 中设置实际值后才能生效；不要把它硬编码到公开 GitHub 代码中。密钥未配置或错误会明确失败，不会自动通过。
 
 **旧变量 `AUTO_APPROVE_ENABLED` 不再控制投稿批准**。当前服务端要求正确暗号，不会因以前设置了 `AUTO_APPROVE_ENABLED=true` 而绕过它。已存在的待审核记录和知识笔记数据保持原样，不会被批量批准。
 
@@ -27,3 +27,5 @@
 ## 新词数规则和兼容数据库升级
 
 文献题目 6–50 词，简要总结 24–200 词。中文按汉字逐字统计、英文及数字的连续序列按一词统计，标点与空格不算词。网页和 API 使用相同规则。为保留原 D1 的长度 CHECK 约束，系统会新增 `full_title` 和 `full_summary` 用来保存完整内容；旧字段保留短前缀，不清除旧投稿，检索和公开列表优先读完整字段。
+
+三个投稿表单（文献、代码、每日简报）现在统一验证 `PUBLICATION_APPROVAL_CODE`；原 `SUBMISSION_APPROVAL_CODE` 不再用于发布。管理员 `ADMIN_REVIEW_TOKEN` 不变。

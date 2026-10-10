@@ -1,17 +1,23 @@
-import {respond,database,sourceAllowed,adminAuthorized,cleanText,lengthOf,invalidText,pageNumber} from "../_lib/community.js";
+import {respond,database,sourceAllowed,publicationCodeConfigured,publicationCodeMatches,cleanText,lengthOf,invalidText,pageNumber} from "../_lib/community.js";
 
-const ISSUE_LIMIT=2000;
+const ISSUE_LIMIT=10000;
 const CREATE_TABLE="CREATE TABLE IF NOT EXISTS daily_ai_digests ("+
   "id INTEGER PRIMARY KEY AUTOINCREMENT,"+
   "issue_date TEXT NOT NULL UNIQUE,"+
   "headline TEXT NOT NULL,"+
   "body TEXT NOT NULL CHECK(length(trim(body)) BETWEEN 50 AND 2000),"+
+  "full_body TEXT,"+
   "created_at TEXT NOT NULL DEFAULT (datetime('now')),"+
   "updated_at TEXT NOT NULL DEFAULT (datetime('now'))"+
 ")";
 
 async function ensureTable(db){
   await db.prepare(CREATE_TABLE).run();
+  const fields=await db.prepare("PRAGMA table_info(daily_ai_digests)").all();
+  if(!(fields.results||[]).some(x=>x.name==="full_body")){
+    try{await db.prepare("ALTER TABLE daily_ai_digests ADD COLUMN full_body TEXT").run();}
+    catch(error){if(!/duplicate column name/i.test(String(error)))throw error;}
+  }
 }
 
 function validDate(value){
@@ -55,8 +61,8 @@ function publicIssue(row){
     id:row.id,
     issue_date:row.issue_date,
     headline:row.headline,
-    body:row.body,
-    entries:parseTenPapers(row.body),
+    body:row.full_body||row.body,
+    entries:parseTenPapers(row.full_body||row.body),
     updated_at:row.updated_at
   };
 }
@@ -72,13 +78,13 @@ export async function onRequestGet({request,env}){
       const id=Number(idParam);
       if(!Number.isSafeInteger(id)||id<1)return respond({ok:false,error:"简报编号无效"},400);
       const item=await db.prepare(
-        "SELECT id,issue_date,headline,body,updated_at FROM daily_ai_digests WHERE id=?"
+        "SELECT id,issue_date,headline,body,full_body,updated_at FROM daily_ai_digests WHERE id=?"
       ).bind(id).first();
       return item?respond({ok:true,issue:publicIssue(item)}):respond({ok:false,error:"这期简报不存在"},404);
     }
     if(params.get("latest")==="1"){
       const latest=await db.prepare(
-        "SELECT id,issue_date,headline,body,updated_at FROM daily_ai_digests ORDER BY issue_date DESC,id DESC LIMIT 1"
+        "SELECT id,issue_date,headline,body,full_body,updated_at FROM daily_ai_digests ORDER BY issue_date DESC,id DESC LIMIT 1"
       ).first();
       return respond({ok:true,issue:publicIssue(latest)});
     }
@@ -98,23 +104,22 @@ export async function onRequestGet({request,env}){
 
 export async function onRequestPost({request,env}){
   if(!sourceAllowed(request))return respond({ok:false,error:"不允许跨站发布"},403);
-  if(!adminAuthorized(request,env))return respond({
-    ok:false,error:"仅站长可以发布每日简报，请填写正确的管理员发布密钥"
-  },401);
+  if(!publicationCodeConfigured(env))return respond({ok:false,error:"请站长先配置 PUBLICATION_APPROVAL_CODE Secret"},503);
   const db=database(env);
   if(!db)return respond({ok:false,error:"D1 数据库未绑定变量 DB"},503);
   if((request.headers.get("Content-Type")||"").split(";")[0].trim().toLowerCase()!=="application/json"){
     return respond({ok:false,error:"请使用 JSON 格式提交"},415);
   }
-  if(Number(request.headers.get("Content-Length")||0)>24000)return respond({ok:false,error:"简报内容过长"},413);
+  if(Number(request.headers.get("Content-Length")||0)>65000)return respond({ok:false,error:"简报内容过长"},413);
 
   let payload;
   try{
     const raw=await request.text();
-    if(raw.length>16000)return respond({ok:false,error:"简报内容过长"},413);
+    if(raw.length>35000)return respond({ok:false,error:"简报内容过长"},413);
     payload=JSON.parse(raw);
   }catch{return respond({ok:false,error:"提交的数据不是有效 JSON"},400);}
   if(!payload||typeof payload!=="object"||Array.isArray(payload))return respond({ok:false,error:"提交格式无效"},400);
+  if(!publicationCodeMatches(env,payload.approval_code))return respond({ok:false,error:"发布暗号不正确，简报未保存"},403);
   const issueDate=cleanText(payload.issue_date);
   const headline=cleanText(payload.headline);
   const body=cleanText(payload.body);
@@ -123,16 +128,16 @@ export async function onRequestPost({request,env}){
     return respond({ok:false,error:"本期标题需 2–120 个字符"},400);
   }
   if(lengthOf(body)<50||lengthOf(body)>ISSUE_LIMIT||invalidText(body)){
-    return respond({ok:false,error:"推送正文需 50–2000 字符（包含十篇文献）"},400);
+    return respond({ok:false,error:"推送正文需 50–10,000 字符（包含十篇文献）"},400);
   }
   try{parseTenPapers(body);}
   catch(error){return respond({ok:false,error:error.message},400);}
   try{
     await ensureTable(db);
     await db.prepare(
-      "INSERT INTO daily_ai_digests(issue_date,headline,body) VALUES(?,?,?) "+
-      "ON CONFLICT(issue_date) DO UPDATE SET headline=excluded.headline,body=excluded.body,updated_at=datetime('now')"
-    ).bind(issueDate,headline,body).run();
+      "INSERT INTO daily_ai_digests(issue_date,headline,body,full_body) VALUES(?,?,?,?) "+
+      "ON CONFLICT(issue_date) DO UPDATE SET headline=excluded.headline,body=excluded.body,full_body=excluded.full_body,updated_at=datetime('now')"
+    ).bind(issueDate,headline,Array.from(body).slice(0,2000).join(""),body).run();
     const stored=await db.prepare(
       "SELECT id FROM daily_ai_digests WHERE issue_date=?"
     ).bind(issueDate).first();

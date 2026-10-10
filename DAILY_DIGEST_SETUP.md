@@ -5,7 +5,7 @@
 ## 发布新一期
 
 1. 在首页最下方找到 **投稿中心**，切换到 **每日 AI 简报**。
-2. 填写**日期**、**本期标题**（2–120 字符）以及 **推送正文**（50–2000 字符）。
+2. 填写**日期**、**本期标题**（2–120 字符）以及 **推送正文**（50–10,000 字符）。
 3. 每期包含 10 篇文献，**每篇须以独立一行的 1.、2. … 10. 编号开始**，支持 `1、`、`1）`、`### 1. ...` 等写法。例如：
 
 ```text
@@ -18,15 +18,15 @@
 ……（继续到 10.）
 ```
 
-4. 输入 **站长发布密钥**。沿用 Cloudflare 已有的 **`ADMIN_REVIEW_TOKEN` Secret**（长度至少 32 字符，与 `/admin.html` 的管理员密钥一致）。**这里不是公开文献投稿暗号，也不是代码投稿暗号**。密钥只发送给本站同源后端进行校验，不写入 GitHub 或数据库。
+4. 输入与文献、代码分享相同的**发布暗号**。Cloudflare Secret 名称为 `PUBLICATION_APPROVAL_CODE`，配置值由站长设置为 `2029`。`ADMIN_REVIEW_TOKEN` 继续作为管理员审核专用密钥，不能用短暗号替换。
 5. 点击“发布每日简报”。同一天再次发布会覆盖**该日期的那一期**，不会删除其他日期。
 
 ## Cloudflare 部署
 
 - 部署仓库的 `material-notes-pages` 分支，保留现有 D1 绑定名称 `DB`。
 - 首次访问 `/api/digests?latest=1` 时自动通过 `CREATE TABLE IF NOT EXISTS` 创建 `daily_ai_digests`，不需要手动迁移。若需手动初始化，可在 D1 Console 执行仓库根目录的 [daily_digest_schema.sql](./daily_digest_schema.sql)。
-- 如尚未配置管理员密钥，请在 Cloudflare Pages → Settings → Variables and Secrets 中配置 `ADMIN_REVIEW_TOKEN`（Secret，长度至少 32 字符），重新部署。
-- API：`GET /api/digests?latest=1` 最新一期；`GET /api/digests?page=1` 往期分页；`GET /api/digests?id=N` 单期详情；`POST /api/digests` 仅站长发布（Bearer 管理员密钥）。
+- 请在 Cloudflare Pages → Settings → Variables and Secrets 中配置统一投稿 Secret `PUBLICATION_APPROVAL_CODE`，值 `2029`，然后重新部署。原 `ADMIN_REVIEW_TOKEN` 保持独立用于后台审核。
+- API：`GET /api/digests?latest=1` 最新一期；`GET /api/digests?page=1` 往期分页；`GET /api/digests?id=N` 单期详情；`POST /api/digests` 验证 JSON 请求中的 `approval_code` 发布暗号。
 
 ## 首页其他功能调整
 
@@ -36,3 +36,7 @@
 - 为避免假定 Q1 分区属实，首页标明“期刊分区、研究结论请读者自行核验”。凡是 AI 生成的推送，站长应先核对真实 DOI、年份、期刊名称和分区信息。
 
 以上是实际存储和展示**站长手动发布**简报的界面，不包含自动生成推送的 AI 任务，也没有创建自动定时推送。
+
+## 长简报升级
+
+旧 D1 表 `body` 的 2000 字约束保留；新增 `full_body` 保存完整 10,000 字正文，展示与详细阅读均优先读取 `full_body`，以保留所有历史简报。程序在首次访问时自动非破坏性增加新列。
