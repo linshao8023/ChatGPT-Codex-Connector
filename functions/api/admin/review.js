@@ -28,7 +28,13 @@ export async function onRequestGet({request,env}) {
   if (source === "all" || source === "knowledge") parts.push(formatSelect("knowledge_posts","knowledge"));
   if(source === "all" || source === "code") {
     const exists=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='code_shares'").first();
-    if(exists) parts.push("SELECT id,COALESCE(full_title,title) AS title,substr(COALESCE(full_code,code),1,1000) AS summary,status,created_at,'code' AS kind,'code-'||id AS item_id,created_at AS sort_time FROM code_shares");
+    if(exists){
+      const codeSchema=await db.prepare("PRAGMA table_info(code_shares)").all();
+      const fields=new Set((codeSchema.results||[]).map(x=>x.name));
+      const fullTitle=fields.has("full_title")?"COALESCE(full_title,title)":"title";
+      const fullCode=fields.has("full_code")?"COALESCE(full_code,code)":"code";
+      parts.push("SELECT id,"+fullTitle+" AS title,substr("+fullCode+",1,1000) AS summary,status,created_at,'code' AS kind,'code-'||id AS item_id,created_at AS sort_time FROM code_shares");
+    }
   }
   const dataSet = "(" + parts.join(" UNION ALL ") + ") AS posts";
   const clauses = [],binds = [];

@@ -20,9 +20,16 @@ export async function onRequestGet({request,env}) {
     ).all();
     const available = new Set((existing.results || []).map((row) => row.name));
     const parts = [];
+    if(available.has("submissions")){
+      const cols=await db.prepare("PRAGMA table_info(submissions)").all();
+      const fields=new Set((cols.results||[]).map(x=>x.name));
+      if(fields.has("full_title")&&fields.has("full_summary")) available.add("submissions_full_columns");
+    }
     if (["all","community"].includes(source) && available.has("submissions")) {
       const attr = available.has("submission_attributions");
-      parts.push("SELECT 'community-'||s.id AS item_id,'community' AS source,s.title,s.summary AS description,'' AS authors,'' AS published,'' AS url,s.created_at AS sort_time,'' AS search_extra,"+(attr?"COALESCE(a.initials,'')":"''")+" AS submitter_initials FROM submissions s "+(attr?"LEFT JOIN submission_attributions a ON a.submission_id=s.id ":"")+"WHERE s.status='approved'");
+      const titleExpr=available.has("submissions_full_columns")?"COALESCE(NULLIF(s.full_title,''),s.title)":"s.title";
+      const summaryExpr=available.has("submissions_full_columns")?"COALESCE(NULLIF(s.full_summary,''),s.summary)":"s.summary";
+      parts.push("SELECT 'community-'||s.id AS item_id,'community' AS source,"+titleExpr+" AS title,"+summaryExpr+" AS description,'' AS authors,'' AS published,'' AS url,s.created_at AS sort_time,'' AS search_extra,"+(attr?"COALESCE(a.initials,'')":"''")+" AS submitter_initials FROM submissions s "+(attr?"LEFT JOIN submission_attributions a ON a.submission_id=s.id ":"")+"WHERE s.status='approved'");
     }
     if (["all","knowledge"].includes(source) && available.has("knowledge_posts")) {
       parts.push("SELECT 'knowledge-'||id AS item_id,'knowledge' AS source,title,summary AS description,'' AS authors,'' AS published,'' AS url,created_at AS sort_time,'' AS search_extra,'' AS submitter_initials FROM knowledge_posts WHERE status='approved'");
