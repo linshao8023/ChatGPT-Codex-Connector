@@ -8,7 +8,11 @@ const PAGE_SIZE = 100;
 const MAX_PAGES = 100; // Guard: never publish a partial snapshot from >10,000 source items.
 const REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000;
 const RETRY_DELAY_MS = 10 * 60 * 1000;
-const LOCK_SECONDS = 15 * 60;
+const FAST_RETRY_MS = 5 * 1000;
+const LOCK_SECONDS = 70;
+const STALE_LOCK_MS = 100 * 1000;
+const CHUNK_PAGES = 2;
+const FETCH_TIMEOUT_MS = 9 * 1000;
 
 export function output(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -85,22 +89,54 @@ export function normalizeZoteroItem(item) {
   };
 }
 
+// A short recoverable lease replaces the old 15-minute lock.
+// An abruptly canceled waitUntil() may never run a catch/finally block.
 export async function acquireLock(db, { force = false } = {}) {
   const now = Date.now();
-  const timestamp = new Date(now).toISOString();
-  const outdated = new Date(now - REFRESH_INTERVAL_MS).toISOString();
-  const retryAllowed = new Date(now - RETRY_DELAY_MS).toISOString();
-  const statement = db.prepare(
+  const result = await db.prepare(
     "UPDATE zotero_sync_state SET lock_until = ?, last_attempt_at = ?, last_error = NULL " +
-    "WHERE id = 1 AND lock_until <= ? AND " +
-    "(? = 1 OR ((last_synced_at IS NULL OR last_synced_at < ?) " +
-    "AND (last_attempt_at IS NULL OR last_attempt_at < ?)))"
-  );
-  const result = await statement.bind(
-    Math.floor(now / 1000) + LOCK_SECONDS, timestamp, Math.floor(now / 1000),
-    force ? 1 : 0, outdated, retryAllowed
+    "WHERE id = 1 AND (lock_until <= ? OR last_attempt_at < ?) AND " +
+    "(? = 1 OR ((last_synced_at IS NULL OR last_synced_at < ?) AND " +
+    "(last_attempt_at IS NULL OR last_attempt_at < CASE WHEN last_error IS NOT NULL THEN ? ELSE ? END)))"
+  ).bind(
+    Math.floor(now / 1000) + LOCK_SECONDS,
+    new Date(now).toISOString(),
+    Math.floor(now / 1000),
+    new Date(now - STALE_LOCK_MS).toISOString(),
+    force ? 1 : 0,
+    new Date(now - REFRESH_INTERVAL_MS).toISOString(),
+    new Date(now - RETRY_DELAY_MS).toISOString(),
+    new Date(now - FAST_RETRY_MS).toISOString()
   ).run();
   return Number(result?.meta?.changes || 0) === 1;
+}
+
+// Store incremental pagination progress separately from the published snapshot.
+// The table can initialize itself on first access: existing Cloudflare D1 data
+// remains untouched and no additional console migration is mandatory.
+async function ensureProgress(db) {
+  await db.prepare(
+    "CREATE TABLE IF NOT EXISTS zotero_sync_progress (" +
+    "id INTEGER PRIMARY KEY CHECK(id=1), " +
+    "staging_generation TEXT NOT NULL DEFAULT '', " +
+    "upstream_offset INTEGER NOT NULL DEFAULT 0, " +
+    "expected_total INTEGER NOT NULL DEFAULT -1, " +
+    "source_version INTEGER NOT NULL DEFAULT 0, " +
+    "updated_at TEXT)"
+  ).run();
+  await db.prepare("INSERT OR IGNORE INTO zotero_sync_progress (id) VALUES (1)").run();
+}
+
+export async function readProgress(db) {
+  try {
+    return await db.prepare(
+      "SELECT staging_generation,upstream_offset,expected_total,updated_at " +
+      "FROM zotero_sync_progress WHERE id=1"
+    ).first();
+  } catch (error) {
+    if (String(error).includes("no such table")) return null;
+    throw error;
+  }
 }
 
 function apiPath(env) {
@@ -122,97 +158,179 @@ function upstreamHeaders(env) {
   return headers;
 }
 
-async function storePage(db, rows, generation) {
-  if (!rows.length) return;
-  const sql = "INSERT INTO zotero_items " +
-    "(zotero_key, generation, item_version, item_type, title, authors, publication_title, item_year, doi, url, abstract, tags_json, zotero_url, date_modified) " +
-    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-    "ON CONFLICT(zotero_key, generation) DO UPDATE SET " +
-    "item_version=excluded.item_version, item_type=excluded.item_type, title=excluded.title, " +
-    "authors=excluded.authors, publication_title=excluded.publication_title, " +
-    "item_year=excluded.item_year, doi=excluded.doi, url=excluded.url, " +
-    "abstract=excluded.abstract, tags_json=excluded.tags_json, " +
-    "zotero_url=excluded.zotero_url, date_modified=excluded.date_modified";
-  const batch = rows.map((row) => db.prepare(sql).bind(
-    row.zotero_key, generation, row.item_version, row.item_type,
-    row.title, row.authors, row.publication_title, row.item_year,
-    row.doi, row.url, row.abstract, row.tags_json, row.zotero_url, row.date_modified
-  ));
-  await db.batch(batch);
+// A single parameterized JSON1 INSERT replaces 100 separate D1 writes.
+// On Cloudflare Free, one Worker invocation can make only 50 D1 queries.
+function stagePageStatement(db, rows, generation) {
+  if (!rows.length) return null;
+  const select = [
+    "json_extract(j.value,'$.zotero_key')",
+    "?",
+    "CAST(json_extract(j.value,'$.item_version') AS INTEGER)",
+    "json_extract(j.value,'$.item_type')",
+    "json_extract(j.value,'$.title')",
+    "json_extract(j.value,'$.authors')",
+    "json_extract(j.value,'$.publication_title')",
+    "json_extract(j.value,'$.item_year')",
+    "json_extract(j.value,'$.doi')",
+    "json_extract(j.value,'$.url')",
+    "json_extract(j.value,'$.abstract')",
+    "json_extract(j.value,'$.tags_json')",
+    "json_extract(j.value,'$.zotero_url')",
+    "json_extract(j.value,'$.date_modified')"
+  ].join(", ");
+  const query = "INSERT INTO zotero_items (" +
+    "zotero_key,generation,item_version,item_type,title,authors,publication_title,item_year," +
+    "doi,url,abstract,tags_json,zotero_url,date_modified) " +
+    "SELECT " + select + " FROM json_each(?) AS j WHERE 1=1 " +
+    "ON CONFLICT(zotero_key,generation) DO UPDATE SET " +
+    "item_version=excluded.item_version,item_type=excluded.item_type,title=excluded.title," +
+    "authors=excluded.authors,publication_title=excluded.publication_title," +
+    "item_year=excluded.item_year,doi=excluded.doi,url=excluded.url," +
+    "abstract=excluded.abstract,tags_json=excluded.tags_json," +
+    "zotero_url=excluded.zotero_url,date_modified=excluded.date_modified";
+  return db.prepare(query).bind(generation, JSON.stringify(rows));
 }
 
+async function fetchZoteroPage(path, headers, offset) {
+  const endpoint = new URL(API_BASE + path);
+  endpoint.searchParams.set("format", "json");
+  endpoint.searchParams.set("limit", String(PAGE_SIZE));
+  endpoint.searchParams.set("start", String(offset));
+  endpoint.searchParams.set("sort", "dateModified");
+  endpoint.searchParams.set("direction", "asc");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(endpoint.href, {
+      method:"GET", headers, redirect:"error", signal:controller.signal
+    });
+    if (!response.ok) {
+      if ([401,403,404].includes(response.status)) {
+        throw new Error("Zotero API 返回 " + response.status +
+          "。请检查群组是否允许公开读取，以及 Cloudflare ZOTERO_API_KEY Secret 的群组读取权限");
+      }
+      if (response.status === 429) {
+        throw new Error("Zotero API 限流（429），请稍后重试");
+      }
+      throw new Error("Zotero API HTTP " + response.status);
+    }
+    const items = await response.json();
+    if (!Array.isArray(items)) throw new Error("Zotero 返回了非数组数据");
+    const totalHeader = response.headers.get("Total-Results");
+    const totalValue = totalHeader === null ? -1 : Number(totalHeader);
+    const version = Number(response.headers.get("Last-Modified-Version") || 0);
+    return {
+      items,
+      total:Number.isSafeInteger(totalValue) && totalValue >= 0 ? totalValue : -1,
+      version:Number.isSafeInteger(version) ? version : 0
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Each invocation handles no more than two upstream pages. Data is persisted
+// in a staging snapshot; the published generation switches only on completion.
+// This makes Cloudflare waitUntil's 30s ceiling non-destructive.
 export async function syncGroup(db, env) {
-  const generation = crypto.randomUUID();
-  let saved = 0;
-  let version = 0;
-  let completed = false;
   try {
     const path = apiPath(env);
     const headers = upstreamHeaders(env);
-    let offset = 0;
-    let total = null;
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const endpoint = new URL(API_BASE + path);
-      endpoint.searchParams.set("format", "json");
-      endpoint.searchParams.set("limit", String(PAGE_SIZE));
-      endpoint.searchParams.set("start", String(offset));
-      endpoint.searchParams.set("sort", "dateModified");
-      endpoint.searchParams.set("direction", "asc");
+    await ensureProgress(db);
+    let progress = await db.prepare(
+      "SELECT staging_generation,upstream_offset,expected_total,source_version " +
+      "FROM zotero_sync_progress WHERE id=1"
+    ).first();
 
-      const response = await fetch(endpoint.href, { method: "GET", headers, redirect: "error" });
-      if (!response.ok) {
-        if ([401, 403, 404].includes(response.status)) {
-          throw new Error("Zotero 返回 " + response.status + "，请检查群组可访问性、ZOTERO_API_KEY 和收藏夹权限");
-        }
-        throw new Error("Zotero HTTP " + response.status + "，请稍后重试");
+    if (!progress?.staging_generation) {
+      const generation = crypto.randomUUID();
+      await db.prepare(
+        "UPDATE zotero_sync_progress SET staging_generation=?, upstream_offset=0," +
+        "expected_total=-1,source_version=0,updated_at=? WHERE id=1"
+      ).bind(generation,new Date().toISOString()).run();
+      progress = {staging_generation:generation,upstream_offset:0,expected_total:-1,source_version:0};
+    }
+    const generation = progress.staging_generation;
+    let offset = Number(progress.upstream_offset || 0);
+    let total = Number(progress.expected_total ?? -1);
+    let version = Number(progress.source_version || 0);
+    let completed = false;
+
+    for (let page = 0; page < CHUNK_PAGES; page++) {
+      if (offset >= MAX_PAGES * PAGE_SIZE) {
+        throw new Error("已达到 10,000 条同步上限，旧缓存仍被保留");
       }
-
-      const currentVersion = Number(response.headers.get("Last-Modified-Version") || 0);
-      if (page > 0 && version && currentVersion && currentVersion !== version) {
-        throw new Error("同步期间 Zotero 文献库发生变化，稍后会自动重试");
+      const nextPage = await fetchZoteroPage(path,headers,offset);
+      if (version && nextPage.version && version !== nextPage.version) {
+        // Restart the staging snapshot if the source changed mid-pagination.
+        await db.batch([
+          db.prepare("DELETE FROM zotero_items WHERE generation=?").bind(generation),
+          db.prepare(
+            "UPDATE zotero_sync_progress SET upstream_offset=0,expected_total=-1," +
+            "source_version=0,updated_at=? WHERE id=1"
+          ).bind(new Date().toISOString())
+        ]);
+        throw new Error("Zotero 文献库正在变化，已重置本轮暂存快照");
       }
-      if (page === 0) version = currentVersion;
-      if (total === null) {
-        const count = Number(response.headers.get("Total-Results"));
-        total = Number.isSafeInteger(count) && count >= 0 ? count : null;
-        if (total !== null && total > MAX_PAGES * PAGE_SIZE) {
-          throw new Error("群组文献超过单次同步上限（10,000 条），原缓存已保留");
-        }
+      if (!version) version = nextPage.version;
+      if (nextPage.total >= 0) total = nextPage.total;
+      if (total > MAX_PAGES * PAGE_SIZE) {
+        throw new Error("群组文献超过 10,000 条单库同步上限");
       }
+      if (nextPage.items.length === 0 && total > offset) {
+        throw new Error("Zotero 分页数据异常，保持已缓存数据并等待重试");
+      }
+      const rows = nextPage.items.map(normalizeZoteroItem).filter(Boolean);
+      offset += nextPage.items.length;
+      const statements = [];
+      const insert = stagePageStatement(db,rows,generation);
+      if (insert) statements.push(insert);
+      statements.push(db.prepare(
+        "UPDATE zotero_sync_progress SET upstream_offset=?,expected_total=?," +
+        "source_version=?,updated_at=? WHERE id=1 AND staging_generation=?"
+      ).bind(offset,total,version,new Date().toISOString(),generation));
+      await db.batch(statements);
 
-      const items = await response.json();
-      if (!Array.isArray(items)) throw new Error("Zotero API 返回的数据格式不正确");
-      const normalized = items.map(normalizeZoteroItem).filter(Boolean);
-      await storePage(db, normalized, generation);
-      saved += normalized.length;
-      offset += items.length;
-
-      if (items.length === 0 || items.length < PAGE_SIZE || (total !== null && offset >= total)) {
+      if (nextPage.items.length < PAGE_SIZE || (total >= 0 && offset >= total)) {
         completed = true;
         break;
       }
     }
-    if (!completed) throw new Error("达到同步分页上限，未完成的快照不会公开");
 
-    await db.batch([
-      db.prepare(
-        "UPDATE zotero_sync_state SET active_generation=?, last_synced_at=?, last_error=NULL, " +
-        "lock_until=0, last_version=?, item_count=? WHERE id=1"
-      ).bind(generation, new Date().toISOString(), version, saved),
-      db.prepare("DELETE FROM zotero_items WHERE generation <> ?").bind(generation)
-    ]);
-    return { ok: true, count: saved, version };
-  } catch (error) {
-    console.error("Zotero sync failed:", error);
-    const diagnostic = String(error?.message || "同步失败").slice(0, 350);
-    try {
+    if (completed) {
+      const count = await db.prepare(
+        "SELECT COUNT(*) AS n FROM zotero_items WHERE generation=?"
+      ).bind(generation).first();
+      const saved = Number(count?.n || 0);
       await db.batch([
-        db.prepare("DELETE FROM zotero_items WHERE generation = ?").bind(generation),
-        db.prepare("UPDATE zotero_sync_state SET lock_until=0, last_error=? WHERE id=1").bind(diagnostic)
+        db.prepare(
+          "UPDATE zotero_sync_state SET active_generation=?, last_synced_at=?," +
+          "last_error=NULL,lock_until=0,last_version=?,item_count=? WHERE id=1"
+        ).bind(generation,new Date().toISOString(),version,saved),
+        db.prepare(
+          "UPDATE zotero_sync_progress SET staging_generation='',upstream_offset=0," +
+          "expected_total=-1,source_version=0,updated_at=? WHERE id=1"
+        ).bind(new Date().toISOString()),
+        db.prepare("DELETE FROM zotero_items WHERE generation<>?").bind(generation)
       ]);
-    } catch (cleanupError) {
-      console.error("Zotero cache rollback failed:", cleanupError);
+      return {ok:true,complete:true,count:saved,version};
     }
-    return { ok: false, error: diagnostic };
+
+    await db.prepare(
+      "UPDATE zotero_sync_state SET lock_until=0,last_error=NULL WHERE id=1"
+    ).run();
+    return {ok:true,complete:false,processed:offset,total};
+  } catch(error) {
+    const diagnostic = String(error?.message||"同步失败").slice(0,350);
+    console.error("Zotero sync failed:",error);
+    try {
+      await db.prepare(
+        "UPDATE zotero_sync_state SET lock_until=0,last_error=? WHERE id=1"
+      ).bind(diagnostic).run();
+    } catch(cleanupError) {
+      console.error("Zotero sync status update failed:",cleanupError);
+    }
+    return {ok:false,error:diagnostic};
   }
 }
