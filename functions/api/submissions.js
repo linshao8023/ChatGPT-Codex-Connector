@@ -78,10 +78,10 @@ export async function onRequestPost({request,env}) {
     return respond({ok:false,error:"提交者姓名首字母请填写 1–12 个英文字母，例如：王少林 → wsl"},400);
   }
 
-  // Fail closed: code is set ONLY in Cloudflare Pages Secrets.
+  // Fail closed: one Cloudflare Secret controls all three publication forms.
   // The former AUTO_APPROVE_ENABLED flag is deliberately not consulted.
-  if (typeof env?.SUBMISSION_APPROVAL_CODE !== "string" || !env.SUBMISSION_APPROVAL_CODE) {
-    return respond({ok:false,error:"发布功能尚未配置：请站长在 Cloudflare 设置 SUBMISSION_APPROVAL_CODE Secret"},503);
+  if (typeof env?.PUBLICATION_APPROVAL_CODE !== "string" || !env.PUBLICATION_APPROVAL_CODE) {
+    return respond({ok:false,error:"发布功能尚未配置：请站长在 Cloudflare 设置 PUBLICATION_APPROVAL_CODE Secret"},503);
   }
   if (!approvalCodeMatches(env,body.approval_code)) {
     return respond({ok:false,error:"发布暗号不正确，文献未提交"},403);

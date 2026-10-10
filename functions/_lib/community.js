@@ -45,17 +45,26 @@ export const orderClause = (sort, prefix = "") => {
 
 // Verify the publishing code exclusively on the server. No default/hardcoded
 // code: a missing Cloudflare Secret must never cause automatic publication.
-export function approvalCodeMatches(env, submitted) {
-  const expected = typeof env?.SUBMISSION_APPROVAL_CODE === "string" ? env.SUBMISSION_APPROVAL_CODE : "";
-  if (!expected || typeof submitted !== "string" || submitted.length > 128) return false;
-  const candidate = submitted.trim();
-  const first = new TextEncoder().encode(expected);
-  const second = new TextEncoder().encode(candidate);
-  let difference = first.length ^ second.length;
-  for (let i = 0; i < Math.max(first.length, second.length); i++) {
-    difference |= (first[i] || 0) ^ (second[i] || 0);
+// One Cloudflare Secret gates all three public submission workflows.
+// Never put its actual value into public HTML, JavaScript or the repository.
+export function publicationCodeConfigured(env) {
+  return typeof env?.PUBLICATION_APPROVAL_CODE === "string" && env.PUBLICATION_APPROVAL_CODE.length > 0;
+}
+export function publicationCodeMatches(env, submitted) {
+  if (!publicationCodeConfigured(env) || typeof submitted !== "string" || submitted.length > 128) return false;
+  const expected = env.PUBLICATION_APPROVAL_CODE;
+  const a = new TextEncoder().encode(expected);
+  const b = new TextEncoder().encode(submitted.trim());
+  let difference = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    difference |= (a[i] || 0) ^ (b[i] || 0);
   }
   return difference === 0;
+}
+// Compatibility for any older imports. The obsolete per-form secrets are
+// intentionally not fallback authentication, so old passcodes cannot survive.
+export function approvalCodeMatches(env, submitted) {
+  return publicationCodeMatches(env, submitted);
 }
 export async function sha256(value) {
   const bytes = new TextEncoder().encode(value);

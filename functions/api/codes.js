@@ -1,4 +1,4 @@
-import {respond,database,sourceAllowed,lengthOf,wordCount,invalidText,safeSearch,pageNumber,pageSize,fingerprint,sha256} from "../_lib/community.js";
+import {respond,database,sourceAllowed,lengthOf,wordCount,invalidText,safeSearch,pageNumber,pageSize,fingerprint,sha256,publicationCodeConfigured,publicationCodeMatches} from "../_lib/community.js";
 
 function sortExpression(sort) {
   switch(sort) {
@@ -7,15 +7,6 @@ function sortExpression(sort) {
     case "title_desc": return "ORDER BY title COLLATE NOCASE DESC,id DESC";
     default: return "ORDER BY created_at DESC,id DESC";
   }
-}
-
-function codeMatches(secret, submitted) {
-  if (typeof secret !== "string" || !secret || typeof submitted !== "string" || submitted.length > 128) return false;
-  const a = new TextEncoder().encode(secret);
-  const b = new TextEncoder().encode(submitted.trim());
-  let diff = a.length ^ b.length;
-  for(let i=0;i<Math.max(a.length,b.length);i++) diff |= (a[i]||0)^(b[i]||0);
-  return diff === 0;
 }
 
 // Non-destructive, idempotent D1 bootstrap. Previously only code_shares was
@@ -160,8 +151,9 @@ export async function onRequestPost({env,request}) {
     return respond({ok:false,error:"姓名首字母请填写 1–12 个英文字母，如 wsl"},400);
   }
 
-  const secret=typeof env?.CODE_SHARING_APPROVAL_CODE==="string"?env.CODE_SHARING_APPROVAL_CODE:"";
-  if (!secret) return respond({ok:false,error:"站长尚未配置 CODE_SHARING_APPROVAL_CODE Secret"},503);
+  if (!publicationCodeConfigured(env)) return respond({
+    ok:false,error:"站长尚未配置 PUBLICATION_APPROVAL_CODE Secret"
+  },503);
   try {
     await ensureCodeTables(db);
     const ipHash=await fingerprint(request,env);
@@ -176,7 +168,7 @@ export async function onRequestPost({env,request}) {
     if (Number(attempt?.attempts||0)>6) return respond({
       ok:false,error:"尝试次数过多，请一小时后重试"
     },429);
-    if(!codeMatches(secret,body.approval_code)) return respond({
+    if(!publicationCodeMatches(env,body.approval_code)) return respond({
       ok:false,error:"发布暗号不正确，代码未保存"
     },403);
 
