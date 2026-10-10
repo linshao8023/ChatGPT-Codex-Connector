@@ -42,7 +42,7 @@ function createLink(label,url){const a=el("a","paper-link",label);a.href=url;a.t
       byId("zotero-page-text").textContent="第 "+zoteroState.page+" / "+maxPages+" 页";
       byId("zotero-prev").disabled=zoteroState.page<=1;
       byId("zotero-next").disabled=zoteroState.page>=maxPages;
-      if(!data.ready) status.textContent="Zotero 正在首次同步。稍后刷新页面查看；如果长时间没有数据，请确认 D1 和群组访问权限。";
+      if(!data.ready) status.textContent=data.last_error?"Zotero 同步失败："+data.last_error+"。下一次访问将尝试续传。":"Zotero 正在首次同步"+(data.progress&&data.progress.processed?"（已处理 "+data.progress.processed+" / "+(data.progress.total||"未知")+" 条）":"")+"。请稍后刷新；同步任务将分批续传。";
       else status.textContent="已缓存 "+zoteroState.total+" 条符合条件的文献 · 每页 "+zoteroState.perPage+" 条"+(data.last_synced_at?" · 最近同步 "+new Date(data.last_synced_at).toLocaleString("zh-CN"):"")+(data.last_error?" · 上次刷新失败，当前展示旧缓存":"");
     } catch (error) {
       grid.replaceChildren();
