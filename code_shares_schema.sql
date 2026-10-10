@@ -30,3 +30,15 @@ CREATE INDEX IF NOT EXISTS idx_code_attempts_hour ON code_share_attempts(window_
 
 -- Only non-NULL publication keys are unique; historical rows migrate on republish.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_code_shares_publication_key ON code_shares(publication_key);
+
+-- Sample images are stored privately in R2, NOT in D1. This table only keeps R2 keys.
+CREATE TABLE IF NOT EXISTS code_share_images (
+  id TEXT PRIMARY KEY,
+  code_id INTEGER NOT NULL REFERENCES code_shares(id) ON DELETE CASCADE,
+  object_key TEXT NOT NULL UNIQUE,
+  mime_type TEXT NOT NULL CHECK(mime_type IN ('image/png','image/jpeg','image/webp')),
+  size_bytes INTEGER NOT NULL CHECK(size_bytes BETWEEN 1 AND 1048576),
+  position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 2),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_code_share_images_code ON code_share_images(code_id,position);
