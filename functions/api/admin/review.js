@@ -1,8 +1,11 @@
 import {respond,database,sourceAllowed,adminAuthorized,tableFor,safeSearch,pageNumber,pageSize,orderClause} from "../../_lib/community.js";
 
-const formatSelect = (table,kind) =>
-  "SELECT id,title,summary,status,created_at,'"+kind+"' AS kind,'"+kind+"-'||id AS item_id,created_at AS sort_time FROM "+table;
-
+const formatSelect = (table,kind,full=false) => {
+  const title=full?"COALESCE(NULLIF(full_title,''),title)":"title";
+  const summary=full?"COALESCE(NULLIF(full_summary,''),summary)":"summary";
+  return "SELECT id,"+title+" AS title,"+summary+" AS summary,status,created_at,'"+kind+
+    "' AS kind,'"+kind+"-'||id AS item_id,created_at AS sort_time FROM "+table;
+};
 export async function onRequestGet({request,env}) {
   if (!adminAuthorized(request,env)) return respond({ok:false,error:"未授权，请检查 ADMIN_REVIEW_TOKEN"},401);
   const db = database(env);
@@ -19,11 +22,13 @@ export async function onRequestGet({request,env}) {
   const perPage = pageSize(url.searchParams.get("per_page"),24);
 
   const parts = [];
-  if (source === "all" || source === "community") parts.push(formatSelect("submissions","community"));
+  const schema=await db.prepare("PRAGMA table_info(submissions)").all();
+  const cols=new Set((schema.results||[]).map(row=>row.name));
+  if (source === "all" || source === "community") parts.push(formatSelect("submissions","community",cols.has("full_title")&&cols.has("full_summary")));
   if (source === "all" || source === "knowledge") parts.push(formatSelect("knowledge_posts","knowledge"));
   if(source === "all" || source === "code") {
     const exists=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='code_shares'").first();
-    if(exists) parts.push("SELECT id,title,substr(code,1,1000) AS summary,status,created_at,'code' AS kind,'code-'||id AS item_id,created_at AS sort_time FROM code_shares");
+    if(exists) parts.push("SELECT id,COALESCE(full_title,title) AS title,substr(COALESCE(full_code,code),1,1000) AS summary,status,created_at,'code' AS kind,'code-'||id AS item_id,created_at AS sort_time FROM code_shares");
   }
   const dataSet = "(" + parts.join(" UNION ALL ") + ") AS posts";
   const clauses = [],binds = [];

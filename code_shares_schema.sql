@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS code_shares (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 2 AND 160),
   code TEXT NOT NULL CHECK(length(trim(code)) BETWEEN 10 AND 20000),
+  full_title TEXT,
+  full_code TEXT,
   initials TEXT NOT NULL CHECK(length(initials) BETWEEN 1 AND 12 AND initials NOT GLOB '*[^a-z]*'),
   status TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('pending','approved','rejected')),
   submitter_hash TEXT NOT NULL,

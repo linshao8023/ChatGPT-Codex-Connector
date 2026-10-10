@@ -1,4 +1,4 @@
-import {respond,database,sourceAllowed,lengthOf,invalidText,safeSearch,pageNumber,pageSize,fingerprint,sha256} from "../_lib/community.js";
+import {respond,database,sourceAllowed,lengthOf,wordCount,invalidText,safeSearch,pageNumber,pageSize,fingerprint,sha256} from "../_lib/community.js";
 
 function sortExpression(sort) {
   switch(sort) {
@@ -24,6 +24,7 @@ const TABLE_SHARES = "CREATE TABLE IF NOT EXISTS code_shares (" +
   "id INTEGER PRIMARY KEY AUTOINCREMENT," +
   "title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 2 AND 160)," +
   "code TEXT NOT NULL CHECK(length(trim(code)) BETWEEN 10 AND 20000)," +
+  "full_title TEXT,full_code TEXT," +
   "initials TEXT NOT NULL CHECK(length(initials) BETWEEN 1 AND 12 AND initials NOT GLOB '*[^a-z]*')," +
   "status TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('pending','approved','rejected'))," +
   "submitter_hash TEXT NOT NULL,content_hash TEXT NOT NULL UNIQUE," +
@@ -66,6 +67,12 @@ async function ensureCodeTables(db) {
   if(neededShares.some(name=>!sharesFields.has(name))||
     neededAttempts.some(name=>!attemptFields.has(name))) throw schemaError();
 
+  for(const field of ["full_title","full_code"]){
+    if(!sharesFields.has(field)){
+      try{await db.prepare("ALTER TABLE code_shares ADD COLUMN "+field+" TEXT").run();}
+      catch(error){if(!/duplicate column name/i.test(String(error)))throw error;}
+    }
+  }
   if(newShares){
     for(const sql of shareIndexes) await db.prepare(sql).run();
   }
@@ -101,7 +108,7 @@ export async function onRequestGet({env,request}) {
       const id=Number(idParam);
       if(!Number.isSafeInteger(id)||id<1) return respond({ok:false,error:"代码编号无效"},400);
       const item=await db.prepare(
-        "SELECT id,title,code,initials,created_at FROM code_shares WHERE id=? AND status='approved'"
+        "SELECT id,COALESCE(full_title,title) AS title,COALESCE(full_code,code) AS code,initials,created_at FROM code_shares WHERE id=? AND status='approved'"
       ).bind(id).first();
       return item?respond({ok:true,item}):respond({ok:false,error:"代码不存在或已下架"},404);
     }
@@ -111,12 +118,12 @@ export async function onRequestGet({env,request}) {
     const sort=["newest","oldest","title","title_desc"].includes(url.searchParams.get("sort"))
       ?url.searchParams.get("sort"):"newest";
     const where=q
-      ?"status='approved' AND (instr(lower(title),lower(?))>0 OR instr(lower(code),lower(?))>0 OR instr(lower(initials),lower(?))>0)"
+      ?"status='approved' AND (instr(lower(COALESCE(full_title,title)),lower(?))>0 OR instr(lower(COALESCE(full_code,code)),lower(?))>0 OR instr(lower(initials),lower(?))>0)"
       :"status='approved'";
     const args=q?[q,q,q]:[];
     const count=await db.prepare("SELECT count(*) AS n FROM code_shares WHERE "+where).bind(...args).first();
     const rows=await db.prepare(
-      "SELECT id,title,initials,substr(code,1,280) AS preview,created_at FROM code_shares WHERE "
+      "SELECT id,COALESCE(full_title,title) AS title,initials,substr(COALESCE(full_code,code),1,280) AS preview,created_at FROM code_shares WHERE "
       +where+" "+sortExpression(sort)+" LIMIT ? OFFSET ?"
     ).bind(...args,perPage,(page-1)*perPage).all();
     return respond({ok:true,items:rows.results||[],total:Number(count?.n||0),page,per_page:perPage,sort});
@@ -131,11 +138,11 @@ export async function onRequestPost({env,request}) {
   if (!sourceAllowed(request)) return respond({ok:false,error:"不允许跨站提交"},403);
   const contentType=(request.headers.get("Content-Type")||"").split(";")[0].trim().toLowerCase();
   if (contentType!=="application/json") return respond({ok:false,error:"请使用 JSON 格式提交"},415);
-  if (Number(request.headers.get("Content-Length")||0)>100000) return respond({ok:false,error:"代码内容超过大小限制"},413);
+  if (Number(request.headers.get("Content-Length")||0)>1200000) return respond({ok:false,error:"代码内容超过大小限制"},413);
   let body;
   try {
     const raw=await request.text();
-    if(raw.length>45000) return respond({ok:false,error:"代码内容过长"},413);
+    if(raw.length>420000) return respond({ok:false,error:"代码内容过长"},413);
     body=JSON.parse(raw);
   }catch{return respond({ok:false,error:"投稿数据格式错误"},400);}
   if (!body||typeof body!=="object"||Array.isArray(body)) return respond({ok:false,error:"投稿数据格式错误"},400);
@@ -143,11 +150,11 @@ export async function onRequestPost({env,request}) {
   const title=typeof body.title==="string"?body.title.trim():"";
   const code=typeof body.code==="string"?body.code.replace(/\r\n?/g,"\n").trim():"";
   const initials=typeof body.initials==="string"?body.initials.trim().toLowerCase():"";
-  if(lengthOf(title)<2||lengthOf(title)>160||invalidText(title)) {
-    return respond({ok:false,error:"代码功能名称必须为 2–160 个字符"},400);
+  if(lengthOf(title)<2||wordCount(title)<1||wordCount(title)>=30||lengthOf(title)>2000||invalidText(title)) {
+    return respond({ok:false,error:"代码功能名称需少于 30 词（至少 2 个字符）"},400);
   }
-  if(lengthOf(code)<10||lengthOf(code)>20000||code.includes("\u0000")) {
-    return respond({ok:false,error:"详细代码必须为 10–20000 个字符"},400);
+  if(lengthOf(code)<10||lengthOf(code)>200000||code.includes("\u0000")) {
+    return respond({ok:false,error:"详细代码必须为 10–200,000 个字符"},400);
   }
   if(!/^[a-z]{1,12}$/.test(initials)) {
     return respond({ok:false,error:"姓名首字母请填写 1–12 个英文字母，如 wsl"},400);
@@ -177,11 +184,11 @@ export async function onRequestPost({env,request}) {
     const existed=await db.prepare("SELECT id FROM code_shares WHERE content_hash=?").bind(duplicateHash).first();
     if(existed) return respond({ok:false,error:"相同代码已经提交，无需重复分享"},409);
     const saved=await db.prepare(
-      "INSERT INTO code_shares(title,code,initials,status,submitter_hash,content_hash) VALUES (?,?,?,'approved',?,?)"
-    ).bind(title,code,initials,ipHash,duplicateHash).run();
+      "INSERT INTO code_shares(title,code,full_title,full_code,initials,status,submitter_hash,content_hash) VALUES (?,?,?,?,?,'approved',?,?)"
+    ).bind(Array.from(title).slice(0,160).join(""),Array.from(code).slice(0,20000).join(""),title,code,initials,ipHash,duplicateHash).run();
     const id=Number(saved?.meta?.last_row_id||0);
     if (!id) throw new Error("No inserted record ID");
-    return respond({ok:true,id,status:"approved",message:"代码提交成功，已公开，可在统一检索中搜索并复制。"},201);
+    return respond({ok:true,id,status:"approved",message:"代码提交成功，已公开，可在下方代码库中搜索并复制。"},201);
   }catch(error){
     return databaseFailure(error,"write");
   }
