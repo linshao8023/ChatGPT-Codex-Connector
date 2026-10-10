@@ -18,19 +18,83 @@ function codeMatches(secret, submitted) {
   return diff === 0;
 }
 
-async function hasCodeTable(db) {
-  return Boolean(await db.prepare(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name='code_shares'"
-  ).first());
+// Non-destructive, idempotent D1 bootstrap. Previously only code_shares was
+// checked, so a missing code_share_attempts table produced a generic 503.
+const TABLE_SHARES = "CREATE TABLE IF NOT EXISTS code_shares (" +
+  "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+  "title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 2 AND 160)," +
+  "code TEXT NOT NULL CHECK(length(trim(code)) BETWEEN 10 AND 20000)," +
+  "initials TEXT NOT NULL CHECK(length(initials) BETWEEN 1 AND 12 AND initials NOT GLOB '*[^a-z]*')," +
+  "status TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('pending','approved','rejected'))," +
+  "submitter_hash TEXT NOT NULL,content_hash TEXT NOT NULL UNIQUE," +
+  "created_at TEXT NOT NULL DEFAULT (datetime('now')),reviewed_at TEXT)";
+const TABLE_ATTEMPTS = "CREATE TABLE IF NOT EXISTS code_share_attempts (" +
+  "ip_hash TEXT NOT NULL,window_hour INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0," +
+  "PRIMARY KEY(ip_hash,window_hour))";
+
+const shareIndexes = [
+  "CREATE INDEX IF NOT EXISTS idx_code_shares_status_created ON code_shares(status,created_at DESC,id DESC)",
+  "CREATE INDEX IF NOT EXISTS idx_code_shares_author ON code_shares(initials)",
+  "CREATE INDEX IF NOT EXISTS idx_code_shares_rate ON code_shares(submitter_hash,created_at)"
+];
+
+function schemaError() {
+  const error = new Error("已存在的代码库表结构不完整");
+  error.code = "CODE_SCHEMA_MISMATCH";
+  return error;
+}
+
+async function ensureCodeTables(db) {
+  const present=await db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('code_shares','code_share_attempts')"
+  ).all();
+  const names=new Set((present.results||[]).map(row=>row.name));
+  const newShares=!names.has("code_shares");
+  const newAttempts=!names.has("code_share_attempts");
+  if(newShares) await db.prepare(TABLE_SHARES).run();
+  if(newAttempts) await db.prepare(TABLE_ATTEMPTS).run();
+
+  // Validate existing schema instead of overwriting or deleting user data.
+  const [shares,attempts]=await Promise.all([
+    db.prepare("PRAGMA table_info(code_shares)").all(),
+    db.prepare("PRAGMA table_info(code_share_attempts)").all()
+  ]);
+  const sharesFields=new Set((shares.results||[]).map(row=>row.name));
+  const attemptFields=new Set((attempts.results||[]).map(row=>row.name));
+  const neededShares=["id","title","code","initials","status","submitter_hash","content_hash","created_at","reviewed_at"];
+  const neededAttempts=["ip_hash","window_hour","attempts"];
+  if(neededShares.some(name=>!sharesFields.has(name))||
+    neededAttempts.some(name=>!attemptFields.has(name))) throw schemaError();
+
+  if(newShares){
+    for(const sql of shareIndexes) await db.prepare(sql).run();
+  }
+  if(newAttempts) {
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_code_attempts_hour ON code_share_attempts(window_hour)").run();
+  }
+}
+
+function databaseFailure(error, action) {
+  const message=String(error?.message||error||"");
+  if(error?.code==="CODE_SCHEMA_MISMATCH"||/no such (table|column)/i.test(message)) {
+    return respond({ok:false,error:"代码数据库表结构不完整。请站长核对 code_shares_schema.sql；现有数据不会被自动删除。"},503);
+  }
+  if(/(?:UNIQUE constraint failed.*code_shares.content_hash|SQLITE_CONSTRAINT_UNIQUE.*code_shares)/i.test(message)){
+    return respond({ok:false,error:"相同代码已经提交，无需重复发布"},409);
+  }
+  if(/(?:CHECK constraint failed|SQLITE_CONSTRAINT_CHECK)/i.test(message)) {
+    return respond({ok:false,error:"数据库拒绝了内容格式：请检查代码长度、功能名称和姓名首字母"},400);
+  }
+  console.error("Code share database operation failed:",action,error);
+  return respond({ok:false,error:action==="read"?"读取代码库失败，请站长检查 Cloudflare D1 绑定与 Functions 日志":
+    "代码数据库写入失败，请站长查看 Cloudflare Pages Functions 日志中的 Code share database operation failed。"},503);
 }
 
 export async function onRequestGet({env,request}) {
   const db=database(env);
   if (!db) return respond({ok:false,error:"D1 数据库未绑定"},503);
   try {
-    if (!await hasCodeTable(db)) return respond({
-      ok:false,error:"代码库尚未初始化：请先执行 code_shares_schema.sql"
-    },503);
+    await ensureCodeTables(db);
     const url=new URL(request.url);
     const idParam=url.searchParams.get("id");
     if (idParam!==null) {
@@ -57,8 +121,7 @@ export async function onRequestGet({env,request}) {
     ).bind(...args,perPage,(page-1)*perPage).all();
     return respond({ok:true,items:rows.results||[],total:Number(count?.n||0),page,per_page:perPage,sort});
   }catch(error) {
-    console.error("Code library listing failed:",error);
-    return respond({ok:false,error:"代码库读取失败，请检查 D1 配置"},503);
+    return databaseFailure(error,"read");
   }
 }
 
@@ -93,7 +156,7 @@ export async function onRequestPost({env,request}) {
   const secret=typeof env?.CODE_SHARING_APPROVAL_CODE==="string"?env.CODE_SHARING_APPROVAL_CODE:"";
   if (!secret) return respond({ok:false,error:"站长尚未配置 CODE_SHARING_APPROVAL_CODE Secret"},503);
   try {
-    if (!await hasCodeTable(db)) return respond({ok:false,error:"请先在 D1 执行 code_shares_schema.sql"},503);
+    await ensureCodeTables(db);
     const ipHash=await fingerprint(request,env);
     const hour=Math.floor(Date.now()/3600000);
     await db.prepare(
@@ -120,7 +183,6 @@ export async function onRequestPost({env,request}) {
     if (!id) throw new Error("No inserted record ID");
     return respond({ok:true,id,status:"approved",message:"代码提交成功，已公开，可在统一检索中搜索并复制。"},201);
   }catch(error){
-    console.error("Code library publish failed:",error);
-    return respond({ok:false,error:"代码保存失败；请检查 D1 数据库表结构"},503);
+    return databaseFailure(error,"write");
   }
 }

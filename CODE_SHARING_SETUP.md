@@ -2,9 +2,9 @@
 
 本次将“数据绘图代码分析”直接嵌入现有首页 Zotero 区域下方（`/#code-analysis`），让访问者在同一个页面提交、检索和复制科研绘图、分析代码。不再提供独立的 `/codes.html`。公开条目会并入首页统一检索；在搜索结果点击“查看并复制代码”可打开完整代码并复制。投稿内容按纯文本呈现，不会被本站执行。
 
-## Cloudflare 两项必要配置
+## Cloudflare 必要配置
 
-1. Cloudflare → D1 → 已绑定 `DB` 的数据库 → Console，执行仓库根目录的 [code_shares_schema.sql](./code_shares_schema.sql)。该 SQL 仅新增 `code_shares`、`code_share_attempts` 两张表，不删除文献、投稿、Zotero 缓存。
+1. **新版已支持自动初始化 D1 代码表。** 第一次访问代码库或提交时，程序会安全地创建缺失的 `code_shares`、`code_share_attempts` 表；不会删除文献、投稿或 Zotero 记录。如果你更希望手动初始化，也可在 D1 Console 执行 [code_shares_schema.sql](./code_shares_schema.sql)，可重复运行。
 2. Cloudflare Pages 项目 → Settings → Variables and Secrets → 新增 Secret：
    - **Name**: `CODE_SHARING_APPROVAL_CODE`
    - **Value**: 你指定的代码发布暗号 **2029**
@@ -26,7 +26,7 @@
 
 ## 验收
 
-- [ ] 已执行 `code_shares_schema.sql` 并确认表存在
+- [ ] 访问首页代码区后确认两张代码表已自动创建（或已手动执行 `code_shares_schema.sql`）
 - [ ] 已设置生产环境 `CODE_SHARING_APPROVAL_CODE` Secret 并重新部署
 - [ ] 页面提交真实的测试代码，错误暗号不能发布、正确暗号能公开
 - [ ] 首页统一检索可以搜索到该代码
@@ -34,3 +34,14 @@
 - [ ] 原文献投稿与 Zotero 群组链接仍正常
 
 GitHub 提交不意味着 Cloudflare 已部署。没有 Cloudflare 控制台权限，线上运行状态需部署后核实。
+## 代码提交提示“数据库写入失败”怎么办？
+
+从 2026-10-10 起，接口会先检查代码表和投稿尝试限流表，缺失时使用 `CREATE TABLE IF NOT EXISTS` 自动补建，不会覆盖已有数据。旧版本只检查 `code_shares`，如果 `code_share_attempts` 缺失就会出现“代码保存失败；请检查 D1 数据库表结构”。更新 GitHub 分支后请确认 Cloudflare Pages 部署已成功、`DB` 指向正确的 D1 数据库，然后刷新页面重试。
+
+若仍失败，在 Cloudflare D1 Console 执行：
+
+```sql
+SELECT name FROM sqlite_master WHERE type='table' AND name IN ('code_shares','code_share_attempts');
+```
+
+应返回 **两行**。再查看 Cloudflare Pages Functions 日志中 `Code share database operation failed` 对应的 D1 错误。若原表结构不完整，程序会返回明确提示，**不要运行 DROP TABLE 清除已有投稿**；可联系维护者编写非破坏性迁移。
