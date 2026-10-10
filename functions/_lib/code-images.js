@@ -1,8 +1,8 @@
 // Shared D1/R2 image plumbing for the public research-code library.
 // R2 remains private: images are served only after the D1 code is approved.
-export const MAX_CODE_IMAGES=3;
+export const MAX_CODE_IMAGES=1;
 export const MAX_CODE_IMAGE_BYTES=1048576; // 1 MiB per image
-export const MAX_CODE_POST_BYTES=5000000; // code text + <=3 images + multipart overhead
+export const MAX_CODE_POST_BYTES=2097152; // one 1 MiB image + multipart overhead
 const ACCEPTED={
   "image/png":{ext:"png"},
   "image/jpeg":{ext:"jpg"},
@@ -14,7 +14,7 @@ const CREATE_IMAGES="CREATE TABLE IF NOT EXISTS code_share_images ("+
   "object_key TEXT NOT NULL UNIQUE,"+
   "mime_type TEXT NOT NULL CHECK (mime_type IN ('image/png','image/jpeg','image/webp')),"+
   "size_bytes INTEGER NOT NULL CHECK (size_bytes BETWEEN 1 AND 1048576),"+
-  "position INTEGER NOT NULL CHECK (position BETWEEN 0 AND 2),"+
+  "position INTEGER NOT NULL CHECK (position = 0),"+
   "created_at TEXT NOT NULL DEFAULT (datetime('now'))"+
 ")";
 
@@ -39,7 +39,7 @@ function detectedMime(bytes){
 
 export async function validateImageUploads(files){
   if(!Array.isArray(files)||files.length>MAX_CODE_IMAGES){
-    throw new ImageUploadError("每条代码最多上传 3 张样图");
+    throw new ImageUploadError("每条代码最多上传 1 张样图");
   }
   const images=[];
   for(const file of files){

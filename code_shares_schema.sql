@@ -38,7 +38,10 @@ CREATE TABLE IF NOT EXISTS code_share_images (
   object_key TEXT NOT NULL UNIQUE,
   mime_type TEXT NOT NULL CHECK(mime_type IN ('image/png','image/jpeg','image/webp')),
   size_bytes INTEGER NOT NULL CHECK(size_bytes BETWEEN 1 AND 1048576),
-  position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 2),
+  position INTEGER NOT NULL CHECK(position = 0),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_code_share_images_code ON code_share_images(code_id,position);
+
+-- Existing D1 tables may retain position BETWEEN 0 AND 2. No destructive migration needed.
+-- The public list displays the first legacy image; replacing removes the old set.

@@ -126,7 +126,7 @@ async function load(){
    copyButton.addEventListener("click",()=>copyById(Number(item.id),copyButton,feedback));
    action.append(copyButton);
    if(Number(item.image_count)>0){
-    const preview=dom("button","查看样图（"+item.image_count+"）","code-view-images");
+    const preview=dom("button","查看样图","code-view-images");
     preview.type="button";
     preview.addEventListener("click",()=>openSampleImages(item.id,item.title));
     action.append(preview);
@@ -158,7 +158,7 @@ async function openSampleImages(id,title){
  try{
   const data=await api("/api/code-images?code_id="+encodeURIComponent(id));
   if(!data.images.length){status.textContent="该代码暂无样图";return;}
-  status.textContent="共有 "+data.images.length+" 张样图";
+  status.textContent="样图示例";
   for(const img of data.images){
    const frame=dom("figure",null,"code-image-frame");
    const picture=document.createElement("img");
@@ -183,8 +183,8 @@ function init(){
  const imageInput=byId("code-images");
  imageInput.addEventListener("change",()=>{
   const files=Array.from(imageInput.files||[]);
-  const invalid=files.length>3||files.some(file=>file.size>1048576||file.size<1||!["image/png","image/jpeg","image/webp"].includes(file.type));
-  byId("code-images-status").textContent=invalid?"最多 3 张，单张 ≤ 1 MB，仅支持 PNG/JPG/WebP":files.length+" 张待上传样图；发布成功后保存到 R2。";
+  const invalid=files.length>1||files.some(file=>file.size>1048576||file.size<1||!["image/png","image/jpeg","image/webp"].includes(file.type));
+  byId("code-images-status").textContent=invalid?"最多 1 张，单张 ≤ 1 MB，仅支持 PNG/JPG/WebP":files.length?"已选择 1 张样图；发布成功后保存到 R2。":"未选择样图，发布时将保留已有样图。";
  });
  byId("code-image-viewer-close").addEventListener("click",closeSampleImages);
  byId("code-image-viewer").addEventListener("click",e=>{if(e.target===byId("code-image-viewer"))closeSampleImages()});
@@ -217,14 +217,14 @@ function init(){
   if(wordCount(title)<1||wordCount(title)>=30||Array.from(title).length<2){feedback.textContent="代码功能名称必须少于 30 词";return;}
   if(Array.from(code).length>200000){feedback.textContent="详细代码不能超过 200,000 个字符";return;}
   const images=Array.from(byId("code-images").files||[]);
-  if(images.length>3||images.some(f=>f.size<1||f.size>1048576||!["image/png","image/jpeg","image/webp"].includes(f.type))){
-   feedback.textContent="样图最多 3 张，每张 ≤ 1 MB，格式仅限 PNG/JPG/WebP";return;
+  if(images.length>1||images.some(f=>f.size<1||f.size>1048576||!["image/png","image/jpeg","image/webp"].includes(f.type))){
+   feedback.textContent="样图最多 1 张，不超过 1 MB，格式仅限 PNG/JPG/WebP";return;
   }
   button.disabled=true;feedback.textContent="正在验证暗号并发布…";
   try{
    const data=await api("/api/codes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,code,initials,approval_code:approval})});
    if(images.length){
-    feedback.textContent="代码已保存，正在上传 "+images.length+" 张样图…";
+    feedback.textContent="代码已保存，正在上传样图…";
     const form=new FormData();
     form.append("code_id",String(data.id));
     form.append("approval_code",approval);

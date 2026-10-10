@@ -133,7 +133,7 @@ export async function onRequestGet({env,request}) {
         }
       }catch(error){console.warn("Code sample count unavailable",error);}
     }
-    const items=(rows.results||[]).map(row=>({...row,image_count:imageCounts.get(row.id)||0}));
+    const items=(rows.results||[]).map(row=>({...row,image_count:imageCounts.get(row.id)?1:0}));
     return respond({ok:true,items,total:Number(count?.n||0),page,per_page:perPage,sort});
   }catch(error) {
     return databaseFailure(error,"read");

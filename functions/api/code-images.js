@@ -45,7 +45,7 @@ export async function onRequestGet({env,request}){
     const published=await db.prepare("SELECT id FROM code_shares WHERE id=? AND status='approved'").bind(codeId).first();
     if(!published)return respond({ok:false,error:"代码不存在或未公开"},404);
     const found=await db.prepare(
-      "SELECT id,mime_type,size_bytes,position FROM code_share_images WHERE code_id=? ORDER BY position ASC"
+      "SELECT id,mime_type,size_bytes,position FROM code_share_images WHERE code_id=? ORDER BY position ASC,id ASC LIMIT 1"
     ).bind(codeId).all();
     return respond({ok:true,code_id:codeId,images:(found.results||[]).map(item=>({
       id:item.id,type:item.mime_type,size_bytes:item.size_bytes,url:"/api/code-images?image_id="+item.id
@@ -66,7 +66,7 @@ export async function onRequestPost({request,env}){
  if(!(request.headers.get("Content-Type")||"").toLowerCase().startsWith("multipart/form-data")){
    return respond({ok:false,error:"请使用图片上传表单"},415);
  }
- if(Number(request.headers.get("Content-Length")||0)>MAX_CODE_POST_BYTES)return respond({ok:false,error:"样图上传包超过 5 MB"},413);
+ if(Number(request.headers.get("Content-Length")||0)>MAX_CODE_POST_BYTES)return respond({ok:false,error:"样图上传包超过 2 MB"},413);
  let uploaded=[];
  try{
   const form=await request.formData();

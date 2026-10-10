@@ -57,7 +57,7 @@ SELECT name FROM sqlite_master WHERE type='table' AND name IN ('code_shares','co
 
 ## R2 样图上传与按需查看（新增）
 
-每条科研代码最多上传 **3 张样图**，单张 **不超过 1 MiB**，仅允许 **PNG / JPG / WebP**。图片二进制文件保存在 **Cloudflare R2 私有存储桶**，原 D1 数据库仅保存图片的 R2 对象键、格式、大小与代码关联，不会把图片存到 D1。公开代码库只有在有图片时显示“查看样图（N）”；访客点击才会从同源 API 加载图片。代码一键复制仍然独立可用。
+每条科研代码最多上传 **1 张样图**，单张 **不超过 1 MiB**，仅允许 **PNG / JPG / WebP**。图片二进制文件保存在 **Cloudflare R2 私有存储桶**，原 D1 数据库仅保存图片的 R2 对象键、格式、大小与代码关联，不会把图片存到 D1。公开代码库只有在有图片时显示“查看样图”；访客点击才会从同源 API 加载图片。代码一键复制仍然独立可用。
 
 ### Cloudflare 必做配置
 
@@ -74,3 +74,7 @@ SELECT name FROM sqlite_master WHERE type='table' AND name IN ('code_shares','co
 - 图片以文件签名验证基础格式，不运行任何上传图片中的脚本。请在上传前清除图中的机密信息及不必要的 EXIF 元数据。
 
 新增接口：`GET /api/code-images?code_id=123` 读取代码关联的图片清单，`GET /api/code-images?image_id=...` 按需读取已公开代码的某张样图，`POST /api/code-images` 需要统一发布暗号的 multipart 上传或替换图片操作。上传并不自动压缩图像，由投稿者自行保证大小。
+
+### 单图限制
+
+每条代码最多上传和展示一张样图（PNG/JPG/WebP，不超过 1 MiB）。上传新图时替换旧图，不选择图片则保留旧图。已存在的多图记录只显示第一张；更换图片时清理原来的所有图片。原有 D1 表无须删除或重建。
