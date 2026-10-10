@@ -9,17 +9,81 @@ async function api(url,options){
  if(!res.ok||!data.ok)throw Error(data.error||"请求失败");
  return data;
 }
+// All submitted code is fetched through the approved, read-only detail API.
+// Never copy preview fragments: this always copies the complete source text.
+function legacyClipboardCopy(value){
+ const textarea=document.createElement("textarea");
+ textarea.value=value;
+ textarea.setAttribute("readonly","");
+ textarea.style.position="fixed";
+ textarea.style.left="-9999px";
+ textarea.style.top="0";
+ textarea.style.opacity="0";
+ document.body.append(textarea);
+ textarea.focus();
+ textarea.select();
+ let done=false;
+ try{done=typeof document.execCommand==="function"&&document.execCommand("copy");}
+ catch{done=false;}
+ finally{textarea.remove();}
+ return done;
+}
+async function writeClipboardText(value){
+ if(navigator.clipboard&&typeof navigator.clipboard.writeText==="function"){
+  try{await navigator.clipboard.writeText(value);return true;}catch{/* fall back */}
+ }
+ return legacyClipboardCopy(value);
+}
 async function copy(value,button){
- try {
-  await navigator.clipboard.writeText(value);
+ const status=byId("code-copy-status");
+ if(await writeClipboardText(value)){
   if(button)button.textContent="已复制 ✓";
-  byId("code-copy-status").textContent="代码已复制到剪贴板";
- }catch{
-  const text=byId("code-full");
-  text?.parentElement?.scrollIntoView({behavior:"smooth"});
-  byId("code-copy-status").textContent="浏览器不允许自动复制，请选中代码手动复制。";
+  if(status)status.textContent="完整代码已复制到剪贴板";
+ }else{
+  if(status)status.textContent="浏览器未允许复制，请选中上方代码手动复制。";
  }
 }
+// The ClipboardItem promise is passed while handling the actual click, which
+// improves compatibility with browsers requiring transient user activation.
+async function copyById(id,button,feedback){
+ if(!Number.isSafeInteger(id)||id<1){
+  if(feedback)feedback.textContent="代码编号无效";
+  return false;
+ }
+ const originalLabel=button?button.textContent:"一键复制代码";
+ if(button){button.disabled=true;button.textContent="正在复制…";}
+ if(feedback)feedback.textContent="正在读取完整代码…";
+ const fullCodePromise=api("/api/codes?id="+encodeURIComponent(id)).then(data=>data.item.code);
+ try{
+  let copied=false;
+  if(navigator.clipboard&&typeof navigator.clipboard.write==="function"&&typeof ClipboardItem==="function"){
+   try{
+    const clipboardItem=new ClipboardItem({
+     "text/plain":fullCodePromise.then(value=>new Blob([value],{type:"text/plain"}))
+    });
+    await navigator.clipboard.write([clipboardItem]);
+    copied=true;
+   }catch{
+    const value=await fullCodePromise;
+    copied=await writeClipboardText(value);
+   }
+  }else{
+   const value=await fullCodePromise;
+   copied=await writeClipboardText(value);
+  }
+  if(!copied)throw Error("浏览器未允许复制，请点击“查看完整代码”后手动复制");
+  if(button)button.textContent="已复制 ✓";
+  if(feedback)feedback.textContent="完整代码已复制到剪贴板";
+  return true;
+ }catch(error){
+  if(feedback)feedback.textContent="复制失败："+(error.message||"请稍后重试");
+  if(button)button.textContent=originalLabel;
+  return false;
+ }finally{
+  if(button)button.disabled=false;
+ }
+}
+window.MaterialNotesCopyCodeById=copyById;
 async function detail(id){
  const block=byId("code-detail");
  const title=byId("code-detail-title"),meta=byId("code-detail-meta"),full=byId("code-full");
@@ -48,10 +112,16 @@ async function load(){
    card.append(dom("small","分享者："+item.initials+" · "+item.created_at+" UTC"),dom("h3",item.title));
    const pre=dom("pre");const code=dom("code",item.preview);pre.append(code);card.append(pre);
    const actions=dom("div",null,"code-actions");
-   const open=dom("button","查看并复制完整代码");
+   const open=dom("button","查看完整代码");
    open.type="button";open.addEventListener("click",()=>detail(item.id));
-   actions.append(open);
-   card.append(actions);list.append(card);
+   const copyButton=dom("button","一键复制代码","code-card-copy");
+   copyButton.type="button";
+   const feedback=dom("small",null,"code-copy-feedback");
+   feedback.setAttribute("role","status");
+   feedback.setAttribute("aria-live","polite");
+   copyButton.addEventListener("click",()=>copyById(item.id,copyButton,feedback));
+   actions.append(open,copyButton);
+   card.append(actions,feedback);list.append(card);
   }
   status.textContent="共 "+data.total+" 条公开代码";
   const pages=Math.max(1,Math.ceil(state.total/state.perPage));

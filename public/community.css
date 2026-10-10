@@ -11,3 +11,7 @@
 .zotero-link-card>small{font-size:12px;color:var(--muted);line-height:1.8}
 #unified-results .community-result{white-space:normal}
 @media(max-width:760px){.zotero-link-grid{grid-template-columns:1fr;gap:12px;margin:24px auto}.zotero-link-card{min-height:148px;padding:24px 16px}}
+
+#unified-results .code-copy-action{font-weight:700;margin-left:14px;padding:8px 13px;font-size:12px}
+#unified-results .code-copy-action:disabled{cursor:wait}
+#unified-results .code-copy-feedback{display:inline-block;margin-left:8px;font-size:12px;color:#2a6958;line-height:1.7}
