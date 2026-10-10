@@ -32,7 +32,7 @@ export async function onRequestGet({request,env}) {
       parts.push("SELECT 'zotero-'||zotero_key AS item_id,'zotero' AS source,title,abstract AS description,authors,item_year AS published,COALESCE(NULLIF(url,''),zotero_url) AS url,date_modified AS sort_time,(doi||' '||tags_json||' '||publication_title) AS search_extra,'' AS submitter_initials FROM zotero_items WHERE generation=(SELECT active_generation FROM zotero_sync_state WHERE id=1)");
     }
     if (["all","code"].includes(source) && available.has("code_shares")) {
-      parts.push("SELECT 'code-'||id AS item_id,'code' AS source,title,substr(code,1,600) AS description,'' AS authors,'' AS published,'/codes.html?id='||id AS url,created_at AS sort_time,code AS search_extra,initials AS submitter_initials FROM code_shares WHERE status='approved'");
+      parts.push("SELECT 'code-'||id AS item_id,'code' AS source,title,substr(code,1,600) AS description,'' AS authors,'' AS published,'/?code='||id||'#code-detail' AS url,created_at AS sort_time,code AS search_extra,initials AS submitter_initials FROM code_shares WHERE status='approved'");
     }
     if (!parts.length) return respond({ok:true,items:[],total:0,page,per_page:perPage,sort,source,ready:false});
 

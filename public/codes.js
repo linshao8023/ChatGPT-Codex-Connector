@@ -32,7 +32,7 @@ async function detail(id){
   full.textContent=data.item.code; // Untrusted code must be text, never HTML/executed.
   byId("code-copy").onclick=()=>copy(data.item.code,byId("code-copy"));
   byId("code-copy").textContent="复制全部代码";
-  history.replaceState(null,"","#code-"+data.item.id);
+  const url=new URL(location.href);url.searchParams.set("code",String(data.item.id));url.hash="code-detail";history.replaceState(null,"",url.pathname+url.search+url.hash);
  }catch(e){title.textContent="无法查看代码";meta.textContent=e.message;}
 }
 async function load(){
@@ -67,7 +67,7 @@ function init(){
  byId("code-sort").addEventListener("change",()=>{state.page=1;load()});
  byId("code-prev").addEventListener("click",()=>{if(state.page>1){state.page--;load()}});
  byId("code-next").addEventListener("click",()=>{if(state.page*state.perPage<state.total){state.page++;load()}});
- byId("code-close").addEventListener("click",()=>{byId("code-detail").hidden=true;history.replaceState(null,"",location.pathname+location.search)});
+ byId("code-close").addEventListener("click",()=>{byId("code-detail").hidden=true;const url=new URL(location.href);url.searchParams.delete("code");url.hash="code-analysis";history.replaceState(null,"",url.pathname+url.search+url.hash)});
  byId("code-form").addEventListener("submit",async event=>{
   event.preventDefault();
   const button=byId("code-submit"),feedback=byId("code-form-feedback");
@@ -82,7 +82,7 @@ function init(){
   }catch(error){feedback.textContent="提交失败："+error.message;}
   finally{button.disabled=false;}
  });
- const queryId=new URL(location.href).searchParams.get("id");
+ const queryId=new URL(location.href).searchParams.get("code");
  if(queryId&&/^\d+$/.test(queryId))detail(queryId);
  load();
 }
