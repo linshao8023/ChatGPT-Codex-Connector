@@ -10,7 +10,7 @@ export async function onRequestGet({request,env}) {
   const url = new URL(request.url);
   const status = ["all","pending","approved","rejected"].includes(url.searchParams.get("status"))
     ? url.searchParams.get("status") : "pending";
-  const source = ["all","community","knowledge"].includes(url.searchParams.get("source"))
+  const source = ["all","community","knowledge","code"].includes(url.searchParams.get("source"))
     ? url.searchParams.get("source") : "all";
   const sort = ["newest","oldest","title","title_desc"].includes(url.searchParams.get("sort"))
     ? url.searchParams.get("sort") : "newest";
@@ -53,7 +53,7 @@ export async function onRequestPost({request,env}) {
     if (body.length > 2000) return respond({ok:false,error:"请求过大"},413);
     payload = JSON.parse(body);
   }catch {return respond({ok:false,error:"JSON 参数错误"},400);}
-  const table = tableFor(payload?.kind);
+  const table = payload?.kind === "code" ? "code_shares" : tableFor(payload?.kind);
   const id = Number(payload?.id);
   const status = payload?.status;
   if (!table || !Number.isSafeInteger(id) || id < 1 || !["pending","approved","rejected"].includes(status)) {
