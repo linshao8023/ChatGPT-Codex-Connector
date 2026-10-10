@@ -60,8 +60,8 @@
     
 
         <section class="community-additions shell" id="community-discovery">
-      <div class="section-intro"><div><p class="section-kicker">COMMUNITY DISCOVERY</p><h2>科研社区统一检索<span class="heading-period">.</span></h2><p class="section-description">搜索 Zotero 文献、读者分享、科研知识笔记与公开代码。只展示已通过的社区内容。</p></div></div>
-      <form id="unified-form" class="community-panel"><label for="unified-q">关键词</label><div class="community-rows"><input id="unified-q" type="search" maxlength="120" placeholder="标题、研究方法、作者或污染物"><select id="unified-source"><option value="all">全部来源</option><option value="zotero">Zotero</option><option value="community">读者文献</option><option value="knowledge">知识笔记</option><option value="code">数据绘图代码</option></select><select id="unified-sort" aria-label="排序"><option value="newest">最新</option><option value="oldest">最早</option><option value="title">标题 A-Z</option><option value="title_desc">标题 Z-A</option></select><select id="unified-size" aria-label="每页数量"><option value="12">12 条/页</option><option value="24" selected>24 条/页</option><option value="48">48 条/页</option></select><button type="submit">搜索</button><button type="button" id="unified-reset">重置</button></div></form>
+      <div class="section-intro"><div><p class="section-kicker">COMMUNITY DISCOVERY</p><h2>科研社区统一检索<span class="heading-period">.</span></h2><p class="section-description">搜索 Zotero 文献、读者分享与科研知识笔记。代码请在下方独立代码区检索。只展示已通过的社区内容。</p></div></div>
+      <form id="unified-form" class="community-panel"><label for="unified-q">关键词</label><div class="community-rows"><input id="unified-q" type="search" maxlength="120" placeholder="标题、研究方法、作者或污染物"><select id="unified-source"><option value="all">全部来源</option><option value="zotero">Zotero</option><option value="community">读者文献</option><option value="knowledge">知识笔记</option></select><select id="unified-sort" aria-label="排序"><option value="newest">最新</option><option value="oldest">最早</option><option value="title">标题 A-Z</option><option value="title_desc">标题 Z-A</option></select><select id="unified-size" aria-label="每页数量"><option value="12">12 条/页</option><option value="24" selected>24 条/页</option><option value="48">48 条/页</option></select><button type="submit">搜索</button><button type="button" id="unified-reset">重置</button></div></form>
       <p id="unified-status" aria-live="polite">正在检索…</p><div id="unified-results"></div>
       <div class="page-controls"><button id="unified-prev" type="button">上一页</button><span id="unified-page"></span><button id="unified-next" type="button">下一页</button><input id="unified-jump" type="number" min="1" value="1" aria-label="跳转页码"><button id="unified-go" type="button">跳转</button></div>
     </section>
@@ -73,14 +73,14 @@
       </div></div>
       <form id="new-community-form" class="community-panel">
         <label for="new-title">文献题目 <span aria-hidden="true">*</span></label>
-        <input id="new-title" name="title" type="text" required minlength="6" maxlength="200" placeholder="至少 6 个字符" autocomplete="off">
+        <input id="new-title" name="title" type="text" required maxlength="2000" placeholder="文献题目（6–50 词）" autocomplete="off"><small class="field-counter" id="new-title-count" aria-live="polite">0 / 6–50 词</small>
         <label for="new-summary">简要总结 <span aria-hidden="true">*</span></label>
-        <textarea id="new-summary" name="summary" required minlength="24" maxlength="1200" rows="6" placeholder="至少 24 个字符，请用自己的语言总结关键发现或研究方法"></textarea>
+        <textarea id="new-summary" name="summary" required maxlength="20000" rows="6" placeholder="用自己的语言总结研究发现（24–200 词）"></textarea><small class="field-counter" id="new-summary-count" aria-live="polite">0 / 24–200 词</small>
         <label for="new-initials">提交者姓名首字母 <span aria-hidden="true">*</span></label>
         <input id="new-initials" name="submitter_initials" type="text" required minlength="1" maxlength="12" pattern="[A-Za-z]{1,12}" autocomplete="off" placeholder="例如：王少林 → wsl">
         <label for="new-code">发布暗号 <span aria-hidden="true">*</span></label>
         <input id="new-code" name="approval_code" type="password" required maxlength="128" autocomplete="off" placeholder="填写发布暗号">
-        <p class="submit-hint">题目不少于 6 个字符、总结不少于 24 个字符，并且暗号正确，即可自动通过并公开。请勿公开受版权保护的全文。</p>
+        <p class="submit-hint">题目 6–50 词、总结 24–200 词，并且暗号正确，即可自动通过并公开。中文按字、英文按词统计。请勿公开受版权保护的全文。</p>
         <button id="new-submit" type="submit">提交并公开文献</button>
         <p id="new-feedback" role="status" aria-live="polite"></p>
       </form>
@@ -110,11 +110,11 @@
 </section>
 <section class="codes-section" id="code-detail" hidden><div class="codes-heading"><div><p class="section-kicker">02 / SOURCE CODE</p><h2 id="code-detail-title">完整代码</h2></div><button type="button" id="code-copy">复制全部代码</button></div><p id="code-detail-meta"></p><pre class="code-preview"><code id="code-full"></code></pre><button type="button" id="code-close">收起代码</button><p id="code-copy-status" aria-live="polite"></p></section>
 <section class="codes-section" id="code-publish"><div class="codes-heading"><div><p class="section-kicker">03 / SHARE YOUR WORK</p><h2>提交数据绘图与分析代码</h2></div></div><form id="code-form" class="code-publish-form">
-<label for="code-title">分享代码功能名称 <span>*</span></label><input id="code-title" required maxlength="160" minlength="2" placeholder="例如：Python 科研散点图与线性拟合">
-<label for="code-body">详细代码 <span>*</span></label><textarea id="code-body" required minlength="10" maxlength="20000" rows="15" spellcheck="false" placeholder="粘贴完整代码。建议添加用途、依赖包和运行说明。"></textarea>
+<label for="code-title">分享代码功能名称 <span>*</span></label><input id="code-title" required maxlength="2000" minlength="2" placeholder="代码功能名称（少于 30 词）"><small class="field-counter" id="code-title-count" aria-live="polite">0 / 29 词</small>
+<label for="code-body">详细代码 <span>*</span></label><textarea id="code-body" required minlength="10" maxlength="200000" rows="15" spellcheck="false" placeholder="粘贴完整代码（10–200,000 字符），建议添加依赖与运行说明。"></textarea><small class="field-counter" id="code-body-count" aria-live="polite">0 / 200,000 字符</small>
 <label for="code-author">提交者姓名首字母 <span>*</span></label><input id="code-author" required pattern="[A-Za-z]{1,12}" maxlength="12" placeholder="例如：王少林 → wsl">
 <label for="code-secret">发布暗号 <span>*</span></label><input id="code-secret" type="password" required maxlength="128" autocomplete="off" placeholder="输入代码分享暗号">
-<p class="codes-hint">提交成功后直接在本站代码库公开，可通过首页统一搜索找到并复制。请仅发布你有权分享的代码，勿包含密码、API Key 或个人数据。</p><button id="code-submit" type="submit">提交并公开代码 ↗</button><p id="code-form-feedback" role="status" aria-live="polite"></p></form></section>
+<p class="codes-hint">提交成功后直接在本站下方独立代码库公开，可在代码库中搜索并一键复制。请仅发布你有权分享的代码，勿包含密码、API Key 或个人数据。</p><button id="code-submit" type="submit">提交并公开代码 ↗</button><p id="code-form-feedback" role="status" aria-live="polite"></p></form></section>
     </section>
     </main>
   <footer class="site-footer">

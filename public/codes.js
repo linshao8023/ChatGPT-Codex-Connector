@@ -2,6 +2,7 @@
 "use strict";
 const byId=id=>document.getElementById(id);
 const state={page:1,total:0,perPage:12};
+function wordCount(value){return (value.normalize("NFKC").match(/[\p{Script=Han}]|[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu)||[]).length;}
 const dom=(tag,text,className)=>{const el=document.createElement(tag);if(text!=null)el.textContent=String(text);if(className)el.className=className;return el;};
 async function api(url,options){
  const res=await fetch(url,{cache:"no-store",...options});
@@ -133,6 +134,11 @@ async function load(){
  }catch(e){list.replaceChildren();status.textContent="加载失败："+e.message;byId("code-pages").hidden=true;}
 }
 function init(){
+ for(const [id,out,words]of [["code-title","code-title-count",true],["code-body","code-body-count",false]]){
+   const input=byId(id),target=byId(out);
+   const update=()=>{const count=words?wordCount(input.value):Array.from(input.value).length;target.textContent=count+" / "+(words?"29 词":"200,000 字符");target.classList.toggle("over-limit",count>(words?29:200000));};
+   input.addEventListener("input",update);update();
+ }
  byId("code-search-form").addEventListener("submit",event=>{event.preventDefault();state.page=1;load()});
  byId("code-sort").addEventListener("change",()=>{state.page=1;load()});
  byId("code-prev").addEventListener("click",()=>{if(state.page>1){state.page--;load()}});
@@ -143,6 +149,8 @@ function init(){
   const button=byId("code-submit"),feedback=byId("code-form-feedback");
   const title=byId("code-title").value.trim(),code=byId("code-body").value.trim(),initials=byId("code-author").value.trim().toLowerCase(),approval=byId("code-secret").value;
   if(!/^[a-z]{1,12}$/.test(initials)){feedback.textContent="姓名首字母请填写英文字母，如 wsl";return;}
+  if(wordCount(title)<1||wordCount(title)>=30||Array.from(title).length<2){feedback.textContent="代码功能名称必须少于 30 词";return;}
+  if(Array.from(code).length>200000){feedback.textContent="详细代码不能超过 200,000 个字符";return;}
   button.disabled=true;feedback.textContent="正在验证暗号并发布…";
   try{
    const data=await api("/api/codes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,code,initials,approval_code:approval})});

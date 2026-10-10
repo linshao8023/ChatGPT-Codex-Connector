@@ -15,3 +15,18 @@
 #unified-results .code-copy-action{font-weight:700;margin-left:14px;padding:8px 13px;font-size:12px}
 #unified-results .code-copy-action:disabled{cursor:wait}
 #unified-results .code-copy-feedback{display:inline-block;margin-left:8px;font-size:12px;color:#2a6958;line-height:1.7}
+
+/* Aligned publication form: consistent card, labels, controls and spacing. */
+#new-sharing{--form-border:#d7e2d9}
+#new-sharing .section-intro{max-width:880px;margin:0 auto 23px}
+#new-community-form.community-panel{display:grid;grid-template-columns:minmax(0,1fr);row-gap:10px;max-width:880px;width:100%;margin:0 auto;padding:clamp(24px,4vw,43px);background:#fff;border:1px solid var(--form-border);border-radius:16px;box-shadow:0 12px 36px rgba(30,62,43,.045)}
+#new-community-form label{font-size:14px;font-weight:700;color:#173e34;margin:14px 0 0;line-height:1.6}
+#new-community-form input,#new-community-form textarea{width:100%;min-width:0;box-sizing:border-box;display:block;margin:0;padding:14px 16px;border:1px solid #cfddd2;border-radius:8px;background:#fff;color:#243a2e;font:inherit;font-size:14px;line-height:1.75;transition:border-color .18s,box-shadow .18s}
+#new-community-form textarea{min-height:178px;resize:vertical}
+#new-community-form input:focus,#new-community-form textarea:focus{outline:none;border-color:#2a6958;box-shadow:0 0 0 3px rgba(42,105,88,.10)}
+#new-community-form .submit-hint{margin:10px 0 4px;line-height:1.8;color:#697c70;font-size:12px}
+#new-community-form #new-submit{width:100%;min-height:48px;margin:5px 0 0;border-radius:8px;font-weight:700}
+#new-community-form #new-feedback{margin:0;min-height:1.7em;overflow-wrap:anywhere}
+.field-counter{display:block;align-self:end;text-align:right;font-size:12px;color:#74857a;line-height:1.4}
+.field-counter.over-limit{color:#a33b33;font-weight:700}
+@media(max-width:600px){#new-community-form.community-panel{padding:22px 18px;border-radius:12px;row-gap:8px}}

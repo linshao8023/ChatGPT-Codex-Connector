@@ -4,3 +4,6 @@
 .code-card .code-card-copy:hover,.code-card .code-card-copy:focus-visible{background:#2a6958;border-color:#2a6958}
 .code-card .code-actions button:disabled{opacity:.6;cursor:wait}
 .code-card .code-copy-feedback{display:block;min-height:1.4em;color:#2a6958;line-height:1.6}
+
+#code-publish .field-counter{font-size:12px;color:#74857a;text-align:right;line-height:1.4;margin-top:-5px}
+#code-publish .field-counter.over-limit{color:#a33b33;font-weight:700}
