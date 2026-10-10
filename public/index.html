@@ -26,7 +26,7 @@
       <nav class="main-nav" aria-label="主导航">
         <a href="#community-discovery">统一检索</a>
         <a href="#zotero">Zotero 文献</a>
-        <a href="#new-sharing">投稿分享</a>
+        <a href="#new-sharing">投稿分享</a><a href="/codes.html">数据绘图代码分析</a>
       </nav>
       <a class="nav-cta" href="#new-sharing">分享文献 <span aria-hidden="true">↗</span></a>
     </div>
@@ -60,8 +60,8 @@
     
 
         <section class="community-additions shell" id="community-discovery">
-      <div class="section-intro"><div><p class="section-kicker">COMMUNITY DISCOVERY</p><h2>科研社区统一检索<span class="heading-period">.</span></h2><p class="section-description">搜索 Zotero 文献、读者分享与科研知识笔记。只展示已通过的社区内容。</p></div></div>
-      <form id="unified-form" class="community-panel"><label for="unified-q">关键词</label><div class="community-rows"><input id="unified-q" type="search" maxlength="120" placeholder="标题、研究方法、作者或污染物"><select id="unified-source"><option value="all">全部来源</option><option value="zotero">Zotero</option><option value="community">读者文献</option><option value="knowledge">知识笔记</option></select><select id="unified-sort" aria-label="排序"><option value="newest">最新</option><option value="oldest">最早</option><option value="title">标题 A-Z</option><option value="title_desc">标题 Z-A</option></select><select id="unified-size" aria-label="每页数量"><option value="12">12 条/页</option><option value="24" selected>24 条/页</option><option value="48">48 条/页</option></select><button type="submit">搜索</button><button type="button" id="unified-reset">重置</button></div></form>
+      <div class="section-intro"><div><p class="section-kicker">COMMUNITY DISCOVERY</p><h2>科研社区统一检索<span class="heading-period">.</span></h2><p class="section-description">搜索 Zotero 文献、读者分享、科研知识笔记与公开代码。只展示已通过的社区内容。</p></div></div>
+      <form id="unified-form" class="community-panel"><label for="unified-q">关键词</label><div class="community-rows"><input id="unified-q" type="search" maxlength="120" placeholder="标题、研究方法、作者或污染物"><select id="unified-source"><option value="all">全部来源</option><option value="zotero">Zotero</option><option value="community">读者文献</option><option value="knowledge">知识笔记</option><option value="code">数据绘图代码</option></select><select id="unified-sort" aria-label="排序"><option value="newest">最新</option><option value="oldest">最早</option><option value="title">标题 A-Z</option><option value="title_desc">标题 Z-A</option></select><select id="unified-size" aria-label="每页数量"><option value="12">12 条/页</option><option value="24" selected>24 条/页</option><option value="48">48 条/页</option></select><button type="submit">搜索</button><button type="button" id="unified-reset">重置</button></div></form>
       <p id="unified-status" aria-live="polite">正在检索…</p><div id="unified-results"></div>
       <div class="page-controls"><button id="unified-prev" type="button">上一页</button><span id="unified-page"></span><button id="unified-next" type="button">下一页</button><input id="unified-jump" type="number" min="1" value="1" aria-label="跳转页码"><button id="unified-go" type="button">跳转</button></div>
     </section>
@@ -86,18 +86,20 @@
       </form>
     </section>
 <section class="zotero-section shell" id="zotero" aria-labelledby="zotero-title">
-      <div class="section-intro"><div>
-        <p class="section-kicker">02 / CONNECTED BIBLIOGRAPHY</p>
-        <h2 id="zotero-title">Zotero 群组文献<span class="heading-period">.</span></h2>
-        <p class="section-description">只读同步 Shaolin Library 群组的文献元数据，不公开附件及个人阅读笔记。</p>
-      </div><a class="zotero-source" href="https://www.zotero.org/groups/6671409/shaolin_library" target="_blank" rel="noopener noreferrer">访问 Zotero 群组 ↗</a></div>
-      <div class="zotero-toolbar">
-        <label for="zotero-search">检索 Zotero 文献</label>
-        <div class="zotero-search-row"><input type="search" id="zotero-search" placeholder="搜索题目、作者、DOI、摘要或标签" autocomplete="off"><button type="button" id="zotero-search-btn">搜索</button></div>
-        <p id="zotero-status" class="zotero-status" role="status" aria-live="polite">正在加载 Zotero 文献…</p>
+      <div class="section-intro">
+        <div><p class="section-kicker">02 / CONNECTED BIBLIOGRAPHY</p>
+          <h2 id="zotero-title">Zotero 群组文献<span class="heading-period">.</span></h2>
+          <p class="section-description">浏览 Shaolin Library 的原始文献库，或通过本站统一检索寻找研究资料。</p>
+        </div>
       </div>
-      <div id="zotero-grid" class="zotero-grid"></div>
-      <div class="zotero-pagination" id="zotero-pagination" hidden><button type="button" id="zotero-prev">上一页</button><span id="zotero-page-text"></span><button type="button" id="zotero-next">下一页</button></div>
+      <div class="zotero-link-grid">
+        <a class="zotero-link-card" href="https://www.zotero.org/groups/6671409/shaolin_library/library" target="_blank" rel="noopener noreferrer">
+          <span>01 / ORIGINAL LIBRARY</span><strong>访问 Zotero 群组 ↗</strong><small>前往 Zotero 官网直接浏览文献</small>
+        </a>
+        <a class="zotero-link-card" href="#community-discovery">
+          <span>02 / LOCAL DISCOVERY</span><strong>检索文献 ↗</strong><small>在本站统一搜索文献与公开分享</small>
+        </a>
+      </div>
     </section>
 
     </main>
