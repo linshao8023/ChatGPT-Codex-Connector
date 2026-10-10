@@ -12,4 +12,4 @@ CREATE TABLE IF NOT EXISTS daily_ai_digests (
 );
 
 -- Existing deployments are safely extended via ALTER TABLE on API access;
--- do not run DROP TABLE. full_body stores the complete 10,000-character edition.
+-- do not run DROP TABLE. full_body stores the complete 20,000-character edition.

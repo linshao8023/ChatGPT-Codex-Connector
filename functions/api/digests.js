@@ -1,6 +1,6 @@
 import {respond,database,sourceAllowed,publicationCodeConfigured,publicationCodeMatches,cleanText,lengthOf,invalidText,pageNumber} from "../_lib/community.js";
 
-const ISSUE_LIMIT=10000;
+const ISSUE_LIMIT=20000;
 const CREATE_TABLE="CREATE TABLE IF NOT EXISTS daily_ai_digests ("+
   "id INTEGER PRIMARY KEY AUTOINCREMENT,"+
   "issue_date TEXT NOT NULL UNIQUE,"+
@@ -88,12 +88,12 @@ export async function onRequestPost({request,env}){
   if((request.headers.get("Content-Type")||"").split(";")[0].trim().toLowerCase()!=="application/json"){
     return respond({ok:false,error:"请使用 JSON 格式提交"},415);
   }
-  if(Number(request.headers.get("Content-Length")||0)>65000)return respond({ok:false,error:"简报内容过长"},413);
+  if(Number(request.headers.get("Content-Length")||0)>180000)return respond({ok:false,error:"简报内容过长"},413);
 
   let payload;
   try{
     const raw=await request.text();
-    if(raw.length>35000)return respond({ok:false,error:"简报内容过长"},413);
+    if(raw.length>90000)return respond({ok:false,error:"简报内容过长"},413);
     payload=JSON.parse(raw);
   }catch{return respond({ok:false,error:"提交的数据不是有效 JSON"},400);}
   if(!payload||typeof payload!=="object"||Array.isArray(payload))return respond({ok:false,error:"提交格式无效"},400);
@@ -106,7 +106,7 @@ export async function onRequestPost({request,env}){
     return respond({ok:false,error:"本期标题需 2–120 个字符"},400);
   }
   if(lengthOf(body)<50||lengthOf(body)>ISSUE_LIMIT||invalidText(body)){
-    return respond({ok:false,error:"推送正文需 50–10,000 字符"},400);
+    return respond({ok:false,error:"推送正文需 50–20,000 字符"},400);
   }
   try{
     await ensureTable(db);

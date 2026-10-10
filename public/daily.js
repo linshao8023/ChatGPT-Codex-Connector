@@ -87,13 +87,13 @@ function init(){
  $("daily-submit-date").value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
  $("daily-submit-body").addEventListener("input",()=>{
    const count=Array.from($("daily-submit-body").value).length;
-   $("daily-submit-count").textContent=count+" / 10,000 字符";
-   $("daily-submit-count").classList.toggle("over-limit",count>10000);
+   $("daily-submit-count").textContent=count+" / 20,000 字符";
+   $("daily-submit-count").classList.toggle("over-limit",count>20000);
  });
  $("daily-submit-form").addEventListener("submit",async event=>{
    event.preventDefault();const button=$("daily-submit-button"),feedback=$("daily-submit-feedback");
    const date=$("daily-submit-date").value,headline=$("daily-submit-headline").value.trim(),body=$("daily-submit-body").value.trim(),token=$("daily-submit-token").value;
-   if(Array.from(body).length>10000){feedback.textContent="简报不能超过 10,000 字符";return;}
+   if(Array.from(body).length>20000){feedback.textContent="简报不能超过 20,000 字符";return;}
    button.disabled=true;feedback.textContent="正在验证发布暗号并保存简报…";
    try{
      const result=await request("/api/digests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({issue_date:date,headline,body,approval_code:token})});
