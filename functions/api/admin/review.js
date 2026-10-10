@@ -21,6 +21,10 @@ export async function onRequestGet({request,env}) {
   const parts = [];
   if (source === "all" || source === "community") parts.push(formatSelect("submissions","community"));
   if (source === "all" || source === "knowledge") parts.push(formatSelect("knowledge_posts","knowledge"));
+  if(source === "all" || source === "code") {
+    const exists=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='code_shares'").first();
+    if(exists) parts.push("SELECT id,title,substr(code,1,1000) AS summary,status,created_at,'code' AS kind,'code-'||id AS item_id,created_at AS sort_time FROM code_shares");
+  }
   const dataSet = "(" + parts.join(" UNION ALL ") + ") AS posts";
   const clauses = [],binds = [];
   if (status !== "all") {clauses.push("status=?");binds.push(status);}
