@@ -1,10 +1,10 @@
-import {respond,database,sourceAllowed,cleanText,lengthOf,invalidText,fingerprint,sha256,safeSearch,pageNumber,wordCount,approvalCodeMatches} from "../_lib/community.js";
+import {respond,database,sourceAllowed,cleanText,lengthOf,invalidText,fingerprint,sha256,safeSearch,pageNumber,wordCount,normalizePublicationTitle,approvalCodeMatches} from "../_lib/community.js";
 
 // Additive D1 upgrade; no table rebuild, no lost attribution/receipt links.
 async function ensureExtendedPaperFields(db) {
   const schema=await db.prepare("PRAGMA table_info(submissions)").all();
   const cols=new Set((schema.results||[]).map(row=>row.name));
-  for (const name of ["full_title","full_summary"]) {
+  for (const name of ["full_title","full_summary","publication_key"]) {
     if (!cols.has(name)) {
       try { await db.prepare("ALTER TABLE submissions ADD COLUMN "+name+" TEXT").run(); }
       catch(error) {
@@ -12,6 +12,7 @@ async function ensureExtendedPaperFields(db) {
       }
     }
   }
+  await db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_publication_key ON submissions(publication_key)").run();
 }
 export async function onRequestGet({env,request}) {
   const db = database(env);
@@ -91,25 +92,55 @@ export async function onRequestPost({request,env}) {
     const attributionTable = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='submission_attributions'").first();
     if (!attributionTable) return respond({ok:false,error:"投稿暂不可用：请站长先在 Cloudflare D1 执行 submission_initials_upgrade.sql"},503);
     await ensureExtendedPaperFields(db);
-    const hash = await fingerprint(request,env);
-    const [recent,duplicate] = await Promise.all([
+    const hash=await fingerprint(request,env);
+    const publicationKey=await sha256(normalizePublicationTitle(title));
+    const [recent,existing]=await Promise.all([
       db.prepare("SELECT COUNT(*) AS n FROM submissions WHERE submitter_hash=? AND created_at>=datetime('now','-1 hour')").bind(hash).first(),
-      db.prepare("SELECT id FROM submissions WHERE lower(trim(COALESCE(full_title,title)))=lower(?) AND lower(trim(COALESCE(full_summary,summary)))=lower(?) AND created_at>=datetime('now','-1 day') LIMIT 1").bind(title,summary).first()
+      db.prepare(
+        "SELECT id,status FROM submissions WHERE publication_key=? "+
+        "OR lower(trim(COALESCE(NULLIF(full_title,''),title)))=lower(trim(?)) "+
+        "ORDER BY CASE status WHEN 'approved' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END,id DESC LIMIT 1"
+      ).bind(publicationKey,title).first()
     ]);
-    if (Number(recent?.n||0) >= 3) {
+    if(Number(recent?.n||0)>=3){
       return respond({ok:false,error:"提交太频繁：同一网络来源每小时最多提交 3 条"},429);
     }
-    if (duplicate) return respond({ok:false,error:"相同的题目和总结最近已提交，请勿重复分享"},409);
+    if(existing){
+      // Rejected content cannot be silently restored with a shared publishing code.
+      if(existing.status==="rejected")return respond({
+        ok:false,error:"此标题曾被管理员下架，请联系管理员审核后恢复"
+      },403);
+      const [changed]=await db.batch([
+        db.prepare(
+          "UPDATE submissions SET title=?,summary=?,full_title=?,full_summary=?,"+
+          "status='approved',submitter_hash=?,publication_key=?,created_at=datetime('now'),reviewed_at=NULL "+
+          "WHERE id=? AND status<>'rejected'"
+        ).bind(Array.from(title).slice(0,200).join(""),
+          Array.from(summary).slice(0,1200).join(""),title,summary,hash,publicationKey,existing.id),
+        db.prepare(
+          "INSERT INTO submission_attributions(submission_id,initials) VALUES(?,?) "+
+          "ON CONFLICT(submission_id) DO UPDATE SET initials=excluded.initials"
+        ).bind(existing.id,submitterInitials)
+      ]);
+      if(!changed.meta?.changes)return respond({ok:false,error:"原文献状态已变化，请刷新后重试"},409);
+      return respond({
+        ok:true,id:existing.id,status:"approved",updated:true,submitter_initials:submitterInitials,
+        message:"相同标题的文献已覆盖更新，原记录编号保留，最新总结与署名已公开。"
+      });
+    }
 
-    // D1 batch() is transactional: the initials and literature post must persist together.
-    const [saved] = await db.batch([
-      db.prepare("INSERT INTO submissions (title,summary,full_title,full_summary,status,submitter_hash) VALUES (?,?,?,?,'approved',?)")
-        .bind(Array.from(title).slice(0,200).join(""),Array.from(summary).slice(0,1200).join(""),title,summary,hash),
+    // First-time title: save the paper and initials in one transaction.
+    const [saved]=await db.batch([
+      db.prepare(
+        "INSERT INTO submissions (title,summary,full_title,full_summary,status,submitter_hash,publication_key) "+
+        "VALUES (?,?,?,?,'approved',?,?)"
+      ).bind(Array.from(title).slice(0,200).join(""),
+        Array.from(summary).slice(0,1200).join(""),title,summary,hash,publicationKey),
       db.prepare("INSERT INTO submission_attributions (submission_id,initials) VALUES (last_insert_rowid(),?)")
         .bind(submitterInitials)
     ]);
-    const id = Number(saved?.meta?.last_row_id||0);
-    if (!id) throw new Error("Missing inserted ID");
+    const id=Number(saved?.meta?.last_row_id||0);
+    if(!id)throw Error("Missing inserted ID");
 
     // Keep historical receipt API compatible; the streamlined form no longer
     // asks visitors to manage a receipt.
@@ -129,6 +160,8 @@ export async function onRequestPost({request,env}) {
     },201);
   } catch(error) {
     console.error("Saving community submission failed:",error);
+    if(/UNIQUE constraint failed.*(publication_key|idx_submissions_publication_key)/i.test(String(error)))
+      return respond({ok:false,error:"此标题正被其他投稿更新，请刷新后再提交"},409);
     return respond({ok:false,error:"投稿保存失败，请联系站长检查 D1 数据库"},503);
   }
 }

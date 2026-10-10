@@ -18,6 +18,9 @@ export const lengthOf = (value) => Array.from(value).length;
 // Bilingual count: each Han character is one unit, contiguous Latin/digit tokens one word.
 export const wordCount = (value) => typeof value === "string"
   ? (value.normalize("NFKC").match(/[\p{Script=Han}]|[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu) || []).length : 0;
+// Stable case- and whitespace-insensitive key for all three publication forms.
+export const normalizePublicationTitle = (value) => typeof value === "string"
+  ? value.normalize("NFKC").trim().replace(/\s+/g," ").toLocaleLowerCase("en") : "";
 export const cleanText = (value) => typeof value === "string" ? value.replace(/\r\n?/g, "\n").trim() : "";
 export const invalidText = (value) => /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value);
 export const kindFor = (value) => value === "knowledge" ? "knowledge" : value === "community" || value == null ? "community" : "";

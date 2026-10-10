@@ -7,9 +7,12 @@ CREATE TABLE IF NOT EXISTS daily_ai_digests (
   headline TEXT NOT NULL,
   body TEXT NOT NULL CHECK(length(trim(body)) BETWEEN 50 AND 2000),
   full_body TEXT,
+  publication_key TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- Existing deployments are safely extended via ALTER TABLE on API access;
 -- do not run DROP TABLE. full_body stores the complete 20,000-character edition.
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_ai_digests_publication_key ON daily_ai_digests(publication_key);

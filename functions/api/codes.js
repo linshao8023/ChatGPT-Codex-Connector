@@ -1,4 +1,4 @@
-import {respond,database,sourceAllowed,lengthOf,wordCount,invalidText,safeSearch,pageNumber,pageSize,fingerprint,sha256,publicationCodeConfigured,publicationCodeMatches} from "../_lib/community.js";
+import {respond,database,sourceAllowed,lengthOf,wordCount,invalidText,safeSearch,pageNumber,pageSize,fingerprint,sha256,normalizePublicationTitle,publicationCodeConfigured,publicationCodeMatches} from "../_lib/community.js";
 
 function sortExpression(sort) {
   switch(sort) {
@@ -15,7 +15,7 @@ const TABLE_SHARES = "CREATE TABLE IF NOT EXISTS code_shares (" +
   "id INTEGER PRIMARY KEY AUTOINCREMENT," +
   "title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 2 AND 160)," +
   "code TEXT NOT NULL CHECK(length(trim(code)) BETWEEN 10 AND 20000)," +
-  "full_title TEXT,full_code TEXT," +
+  "full_title TEXT,full_code TEXT,publication_key TEXT," +
   "initials TEXT NOT NULL CHECK(length(initials) BETWEEN 1 AND 12 AND initials NOT GLOB '*[^a-z]*')," +
   "status TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('pending','approved','rejected'))," +
   "submitter_hash TEXT NOT NULL,content_hash TEXT NOT NULL UNIQUE," +
@@ -58,12 +58,13 @@ async function ensureCodeTables(db) {
   if(neededShares.some(name=>!sharesFields.has(name))||
     neededAttempts.some(name=>!attemptFields.has(name))) throw schemaError();
 
-  for(const field of ["full_title","full_code"]){
+  for(const field of ["full_title","full_code","publication_key"]){
     if(!sharesFields.has(field)){
       try{await db.prepare("ALTER TABLE code_shares ADD COLUMN "+field+" TEXT").run();}
       catch(error){if(!/duplicate column name/i.test(String(error)))throw error;}
     }
   }
+  await db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_code_shares_publication_key ON code_shares(publication_key)").run();
   if(newShares){
     for(const sql of shareIndexes) await db.prepare(sql).run();
   }
@@ -76,6 +77,9 @@ function databaseFailure(error, action) {
   const message=String(error?.message||error||"");
   if(error?.code==="CODE_SCHEMA_MISMATCH"||/no such (table|column)/i.test(message)) {
     return respond({ok:false,error:"代码数据库表结构不完整。请站长核对 code_shares_schema.sql；现有数据不会被自动删除。"},503);
+  }
+  if(/UNIQUE constraint failed.*code_shares.publication_key/i.test(message)){
+    return respond({ok:false,error:"此代码标题刚被其他投稿更新，请刷新后重试"},409);
   }
   if(/(?:UNIQUE constraint failed.*code_shares.content_hash|SQLITE_CONSTRAINT_UNIQUE.*code_shares)/i.test(message)){
     return respond({ok:false,error:"相同代码已经提交，无需重复发布"},409);
@@ -172,15 +176,48 @@ export async function onRequestPost({env,request}) {
       ok:false,error:"发布暗号不正确，代码未保存"
     },403);
 
+    const publicationKey=await sha256(normalizePublicationTitle(title));
     const duplicateHash=await sha256(title.toLocaleLowerCase("en")+"|"+code);
-    const existed=await db.prepare("SELECT id FROM code_shares WHERE content_hash=?").bind(duplicateHash).first();
-    if(existed) return respond({ok:false,error:"相同代码已经提交，无需重复分享"},409);
+    const [existing,contentOwner]=await Promise.all([
+      db.prepare(
+        "SELECT id,status FROM code_shares WHERE publication_key=? "+
+        "OR lower(trim(COALESCE(NULLIF(full_title,''),title)))=lower(trim(?)) "+
+        "ORDER BY CASE status WHEN 'approved' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END,id DESC LIMIT 1"
+      ).bind(publicationKey,title).first(),
+      db.prepare("SELECT id FROM code_shares WHERE content_hash=?").bind(duplicateHash).first()
+    ]);
+    if(existing){
+      if(existing.status==="rejected")return respond({
+        ok:false,error:"此代码标题已被管理员下架，不能使用普通暗号直接恢复"
+      },403);
+      if(contentOwner&&Number(contentOwner.id)!==Number(existing.id))
+        return respond({ok:false,error:"此代码内容已被另一条记录使用，请调整标题或内容"},409);
+      const updated=await db.prepare(
+        "UPDATE code_shares SET title=?,code=?,full_title=?,full_code=?,initials=?,"+
+        "status='approved',submitter_hash=?,content_hash=?,publication_key=?,"+
+        "created_at=datetime('now'),reviewed_at=NULL WHERE id=? AND status<>'rejected'"
+      ).bind(
+        Array.from(title).slice(0,160).join(""),Array.from(code).slice(0,20000).join(""),
+        title,code,initials,ipHash,duplicateHash,publicationKey,existing.id
+      ).run();
+      if(!updated.meta?.changes)return respond({ok:false,error:"该代码状态已改变，请刷新后重试"},409);
+      return respond({
+        ok:true,id:existing.id,updated:true,status:"approved",
+        message:"相同标题的分析代码已覆盖更新，完整代码及署名已替换，可以直接搜索和复制。"
+      });
+    }
+    if(contentOwner)return respond({ok:false,error:"相同代码内容已存在，请不要使用不同标题重复发布"},409);
     const saved=await db.prepare(
-      "INSERT INTO code_shares(title,code,full_title,full_code,initials,status,submitter_hash,content_hash) VALUES (?,?,?,?,?,'approved',?,?)"
-    ).bind(Array.from(title).slice(0,160).join(""),Array.from(code).slice(0,20000).join(""),title,code,initials,ipHash,duplicateHash).run();
+      "INSERT INTO code_shares(title,code,full_title,full_code,initials,status,submitter_hash,content_hash,publication_key) "+
+      "VALUES (?,?,?,?,?,'approved',?,?,?)"
+    ).bind(
+      Array.from(title).slice(0,160).join(""),Array.from(code).slice(0,20000).join(""),
+      title,code,initials,ipHash,duplicateHash,publicationKey
+    ).run();
     const id=Number(saved?.meta?.last_row_id||0);
-    if (!id) throw new Error("No inserted record ID");
-    return respond({ok:true,id,status:"approved",message:"代码提交成功，已公开，可在下方代码库中搜索并复制。"},201);
+    if(!id)throw Error("No inserted record ID");
+    return respond({ok:true,id,status:"approved",updated:false,
+      message:"代码提交成功，已公开；之后使用相同标题提交将直接覆盖本条完整代码。"},201);
   }catch(error){
     return databaseFailure(error,"write");
   }

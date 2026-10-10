@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   summary TEXT NOT NULL CHECK (length(trim(summary)) BETWEEN 10 AND 1200),
   full_title TEXT,
   full_summary TEXT,
+  publication_key TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   submitter_hash TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -14,3 +15,6 @@ CREATE TABLE IF NOT EXISTS submissions (
 CREATE INDEX IF NOT EXISTS idx_submissions_status_id ON submissions (status, id DESC);
 CREATE INDEX IF NOT EXISTS idx_submissions_submitter_created ON submissions (submitter_hash, created_at);
 CREATE INDEX IF NOT EXISTS idx_submissions_title_created ON submissions (title, created_at);
+
+-- publication_key holds the normalized-title SHA-256; existing rows remain unchanged until updated.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_publication_key ON submissions(publication_key);

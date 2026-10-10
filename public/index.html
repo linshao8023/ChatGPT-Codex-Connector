@@ -113,7 +113,7 @@
           <label for="daily-submit-body">简报正文（最多 20,000 字符）*</label>
           <textarea id="daily-submit-body" maxlength="20000" rows="18" required placeholder="直接粘贴完整 AI 文献简报即可，无需编号、无需指定格式。"></textarea>
           <small class="field-counter" id="daily-submit-count">0 / 20,000 字符</small>
-          <p class="daily-submit-note">无需编号或分段标记，粘贴正文即可发布。网站保留完整原文，供访客查看及浏览往期。</p>
+          <p class="daily-submit-note">无需编号或分段标记，直接粘贴正文。相同标题或日期再次发布会覆盖原简报；网站保留当前版本的完整正文。</p>
           <label for="daily-submit-token">发布暗号 *</label><input id="daily-submit-token" type="password" autocomplete="off" required placeholder="输入统一发布暗号">
           <button type="submit" id="daily-submit-button">发布每日简报 ↗</button>
           <p id="daily-submit-feedback" role="status" aria-live="polite"></p>
@@ -134,7 +134,7 @@
         <input id="new-initials" name="submitter_initials" type="text" required minlength="1" maxlength="12" pattern="[A-Za-z]{1,12}" autocomplete="off" placeholder="例如：王少林 → wsl">
         <label for="new-code">发布暗号 <span aria-hidden="true">*</span></label>
         <input id="new-code" name="approval_code" type="password" required maxlength="128" autocomplete="off" placeholder="填写发布暗号">
-        <p class="submit-hint">题目 6–50 词、总结 24–200 词，并且暗号正确，即可自动通过并公开。中文按字、英文按词统计。请勿公开受版权保护的全文。</p>
+        <p class="submit-hint">题目 6–50 词、总结 24–200 词；暗号正确后公开。相同标题再次提交会覆盖已有文献及署名。中文按字、英文按词统计。请勿公开受版权保护的全文。</p>
         <button id="new-submit" type="submit">提交并公开文献</button>
         <p id="new-feedback" role="status" aria-live="polite"></p>
       </form>
@@ -144,7 +144,7 @@
 <label for="code-body">详细代码 <span>*</span></label><textarea id="code-body" required minlength="10" maxlength="200000" rows="15" spellcheck="false" placeholder="粘贴完整代码（10–200,000 字符），建议添加依赖与运行说明。"></textarea><small class="field-counter" id="code-body-count" aria-live="polite">0 / 200,000 字符</small>
 <label for="code-author">提交者姓名首字母 <span>*</span></label><input id="code-author" required pattern="[A-Za-z]{1,12}" maxlength="12" placeholder="例如：王少林 → wsl">
 <label for="code-secret">发布暗号 <span>*</span></label><input id="code-secret" type="password" required maxlength="128" autocomplete="off" placeholder="输入代码分享暗号">
-<p class="codes-hint">提交成功后直接在本站下方独立代码库公开，可在代码库中搜索并一键复制。请仅发布你有权分享的代码，勿包含密码、API Key 或个人数据。</p><button id="code-submit" type="submit">提交并公开代码 ↗</button><p id="code-form-feedback" role="status" aria-live="polite"></p></form></section>
+<p class="codes-hint">提交后在下方独立代码库公开；相同功能名称再次提交会直接覆盖旧代码与署名，并支持一键复制。请仅发布你有权分享的代码，勿包含密码、API Key 或个人数据。</p><button id="code-submit" type="submit">提交并公开代码 ↗</button><p id="code-form-feedback" role="status" aria-live="polite"></p></form></section>
     </section>
     </main>
   <footer class="site-footer">

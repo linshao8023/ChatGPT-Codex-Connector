@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS code_shares (
   code TEXT NOT NULL CHECK(length(trim(code)) BETWEEN 10 AND 20000),
   full_title TEXT,
   full_code TEXT,
+  publication_key TEXT,
   initials TEXT NOT NULL CHECK(length(initials) BETWEEN 1 AND 12 AND initials NOT GLOB '*[^a-z]*'),
   status TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('pending','approved','rejected')),
   submitter_hash TEXT NOT NULL,
@@ -26,3 +27,6 @@ CREATE TABLE IF NOT EXISTS code_share_attempts (
   PRIMARY KEY(ip_hash,window_hour)
 );
 CREATE INDEX IF NOT EXISTS idx_code_attempts_hour ON code_share_attempts(window_hour);
+
+-- Only non-NULL publication keys are unique; historical rows migrate on republish.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_code_shares_publication_key ON code_shares(publication_key);

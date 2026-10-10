@@ -1,4 +1,4 @@
-import {respond,database,sourceAllowed,publicationCodeConfigured,publicationCodeMatches,cleanText,lengthOf,invalidText,pageNumber} from "../_lib/community.js";
+import {respond,database,sourceAllowed,publicationCodeConfigured,publicationCodeMatches,cleanText,lengthOf,invalidText,pageNumber,sha256,normalizePublicationTitle} from "../_lib/community.js";
 
 const ISSUE_LIMIT=20000;
 const CREATE_TABLE="CREATE TABLE IF NOT EXISTS daily_ai_digests ("+
@@ -7,6 +7,7 @@ const CREATE_TABLE="CREATE TABLE IF NOT EXISTS daily_ai_digests ("+
   "headline TEXT NOT NULL,"+
   "body TEXT NOT NULL CHECK(length(trim(body)) BETWEEN 50 AND 2000),"+
   "full_body TEXT,"+
+  "publication_key TEXT,"+
   "created_at TEXT NOT NULL DEFAULT (datetime('now')),"+
   "updated_at TEXT NOT NULL DEFAULT (datetime('now'))"+
 ")";
@@ -14,10 +15,13 @@ const CREATE_TABLE="CREATE TABLE IF NOT EXISTS daily_ai_digests ("+
 async function ensureTable(db){
   await db.prepare(CREATE_TABLE).run();
   const fields=await db.prepare("PRAGMA table_info(daily_ai_digests)").all();
-  if(!(fields.results||[]).some(x=>x.name==="full_body")){
-    try{await db.prepare("ALTER TABLE daily_ai_digests ADD COLUMN full_body TEXT").run();}
-    catch(error){if(!/duplicate column name/i.test(String(error)))throw error;}
+  for(const column of ["full_body","publication_key"]){
+    if(!(fields.results||[]).some(x=>x.name===column)){
+      try{await db.prepare("ALTER TABLE daily_ai_digests ADD COLUMN "+column+" TEXT").run();}
+      catch(error){if(!/duplicate column name/i.test(String(error)))throw error;}
+    }
   }
+  await db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_ai_digests_publication_key ON daily_ai_digests(publication_key)").run();
 }
 
 function validDate(value){
@@ -110,20 +114,42 @@ export async function onRequestPost({request,env}){
   }
   try{
     await ensureTable(db);
-    await db.prepare(
-      "INSERT INTO daily_ai_digests(issue_date,headline,body,full_body) VALUES(?,?,?,?) "+
-      "ON CONFLICT(issue_date) DO UPDATE SET headline=excluded.headline,body=excluded.body,full_body=excluded.full_body,updated_at=datetime('now')"
-    ).bind(issueDate,headline,Array.from(body).slice(0,2000).join(""),body).run();
-    const stored=await db.prepare(
-      "SELECT id FROM daily_ai_digests WHERE issue_date=?"
-    ).bind(issueDate).first();
-    if(!stored)return respond({ok:false,error:"简报已处理但未能读取编号，请检查 D1"},503);
+    const publicationKey=await sha256(normalizePublicationTitle(headline));
+    const [sameTitle,sameDate]=await Promise.all([
+      db.prepare(
+        "SELECT id,issue_date FROM daily_ai_digests WHERE publication_key=? "+
+        "OR lower(trim(headline))=lower(trim(?)) ORDER BY issue_date DESC,id DESC LIMIT 1"
+      ).bind(publicationKey,headline).first(),
+      db.prepare("SELECT id,headline FROM daily_ai_digests WHERE issue_date=?").bind(issueDate).first()
+    ]);
+    if(sameTitle&&sameDate&&Number(sameTitle.id)!==Number(sameDate.id)){
+      return respond({ok:false,error:"此标题已用于另一日期，而目标日期也有另一份简报。为避免误覆盖，请先调整日期或标题。"},409);
+    }
+    const target=sameTitle||sameDate;
+    const prefix=Array.from(body).slice(0,2000).join("");
+    let id;
+    if(target){
+      await db.prepare(
+        "UPDATE daily_ai_digests SET issue_date=?,headline=?,body=?,full_body=?,"+
+        "publication_key=?,updated_at=datetime('now') WHERE id=?"
+      ).bind(issueDate,headline,prefix,body,publicationKey,target.id).run();
+      id=Number(target.id);
+    }else{
+      const inserted=await db.prepare(
+        "INSERT INTO daily_ai_digests(issue_date,headline,body,full_body,publication_key) VALUES(?,?,?,?,?)"
+      ).bind(issueDate,headline,prefix,body,publicationKey).run();
+      id=Number(inserted?.meta?.last_row_id||0);
+    }
+    if(!id)return respond({ok:false,error:"简报保存后未能确认编号，请检查 D1"},503);
     return respond({
-      ok:true,id:stored.id,issue_date:issueDate,
-      message:"每日简报已发布。相同日期重新提交会更新该期内容，往期其他简报保持不变。"
-    },201);
+      ok:true,id,issue_date:issueDate,updated:Boolean(target),
+      message:target?"相同标题或日期的简报已直接覆盖，更新后的完整正文已发布。":
+        "每日简报发布成功；相同标题或日期再次发布将覆盖原有简报。"
+    },target?200:201);
   }catch(error){
     console.error("Daily digest write failed",error);
+    if(/UNIQUE constraint failed.*(publication_key|issue_date)/i.test(String(error)))
+      return respond({ok:false,error:"该标题或日期刚被其他简报更新，请刷新后重试"},409);
     return respond({ok:false,error:"保存失败，请检查 Cloudflare D1 数据库及 Functions 日志"},503);
   }
 }
