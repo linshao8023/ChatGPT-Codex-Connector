@@ -1,5 +1,18 @@
-import {respond,database,sourceAllowed,cleanText,lengthOf,invalidText,fingerprint,sha256,safeSearch,pageNumber,approvalCodeMatches} from "../_lib/community.js";
+import {respond,database,sourceAllowed,cleanText,lengthOf,invalidText,fingerprint,sha256,safeSearch,pageNumber,wordCount,approvalCodeMatches} from "../_lib/community.js";
 
+// Additive D1 upgrade; no table rebuild, no lost attribution/receipt links.
+async function ensureExtendedPaperFields(db) {
+  const schema=await db.prepare("PRAGMA table_info(submissions)").all();
+  const cols=new Set((schema.results||[]).map(row=>row.name));
+  for (const name of ["full_title","full_summary"]) {
+    if (!cols.has(name)) {
+      try { await db.prepare("ALTER TABLE submissions ADD COLUMN "+name+" TEXT").run(); }
+      catch(error) {
+        if(!/duplicate column name/i.test(String(error))) throw error;
+      }
+    }
+  }
+}
 export async function onRequestGet({env,request}) {
   const db = database(env);
   if (!db) return respond({ok:false,error:"D1 数据库未绑定"},503);
@@ -8,11 +21,18 @@ export async function onRequestGet({env,request}) {
     const page = pageNumber(url.searchParams.get("page"));
     const perPage = 30;
     const q = safeSearch(url.searchParams.get("q"));
-    const where = q ? "status='approved' AND (instr(lower(title),lower(?))>0 OR instr(lower(summary),lower(?))>0)" : "status='approved'";
-    const params = q ? [q,q] : [];
-    const count = await db.prepare("SELECT COUNT(*) AS n FROM submissions WHERE "+where).bind(...params).first();
-    const rows = await db.prepare(
-      "SELECT id,title,summary,created_at FROM submissions WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?"
+    const schema=await db.prepare("PRAGMA table_info(submissions)").all();
+    const cols=new Set((schema.results||[]).map(row=>row.name));
+    const titleField=cols.has("full_title")?"COALESCE(NULLIF(full_title,''),title)":"title";
+    const summaryField=cols.has("full_summary")?"COALESCE(NULLIF(full_summary,''),summary)":"summary";
+    const where=q
+      ? "status='approved' AND (instr(lower("+titleField+"),lower(?))>0 OR instr(lower("+summaryField+"),lower(?))>0)"
+      : "status='approved'";
+    const params=q?[q,q]:[];
+    const count=await db.prepare("SELECT COUNT(*) AS n FROM submissions WHERE "+where).bind(...params).first();
+    const rows=await db.prepare(
+      "SELECT id,"+titleField+" AS title,"+summaryField+" AS summary,created_at FROM submissions WHERE "+
+      where+" ORDER BY id DESC LIMIT ? OFFSET ?"
     ).bind(...params,perPage,(page-1)*perPage).all();
     return respond({ok:true,submissions:rows.results||[],total:Number(count?.n||0),page,per_page:perPage});
   } catch(error) {
@@ -27,12 +47,12 @@ export async function onRequestPost({request,env}) {
   if (!sourceAllowed(request)) return respond({ok:false,error:"不允许跨站提交"},403);
   const contentType = (request.headers.get("Content-Type")||"").split(";")[0].trim().toLowerCase();
   if (contentType !== "application/json") return respond({ok:false,error:"请使用 JSON 提交"},415);
-  if (Number(request.headers.get("Content-Length")||0) > 8192) return respond({ok:false,error:"投稿内容过长"},413);
+  if (Number(request.headers.get("Content-Length")||0) > 100000) return respond({ok:false,error:"投稿内容过长"},413);
 
   let body;
   try {
     const raw = await request.text();
-    if (raw.length > 5000) return respond({ok:false,error:"投稿内容过长"},413);
+    if (raw.length > 50000) return respond({ok:false,error:"投稿内容过长"},413);
     body = JSON.parse(raw);
   } catch {
     return respond({ok:false,error:"投稿数据格式错误"},400);
@@ -44,11 +64,11 @@ export async function onRequestPost({request,env}) {
   const title = cleanText(body.title);
   const summary = cleanText(body.summary);
   const submitterInitials = typeof body.submitter_initials === "string" ? body.submitter_initials.trim().toLowerCase() : "";
-  if (lengthOf(title) < 6 || lengthOf(title) > 200) {
-    return respond({ok:false,error:"文献题目至少 6 个字符，最多 200 个字符"},400);
+  if(wordCount(title)<6||wordCount(title)>50||lengthOf(title)>2000) {
+    return respond({ok:false,error:"文献题目需 6–50 词（中文按字、英文按词统计）"},400);
   }
-  if (lengthOf(summary) < 24 || lengthOf(summary) > 1200) {
-    return respond({ok:false,error:"简要总结至少 24 个字符，最多 1200 个字符"},400);
+  if(wordCount(summary)<24||wordCount(summary)>200||lengthOf(summary)>20000) {
+    return respond({ok:false,error:"简要总结需 24–200 词（中文按字、英文按词统计）"},400);
   }
   if (invalidText(title) || invalidText(summary)) {
     return respond({ok:false,error:"内容不能包含控制字符"},400);
@@ -70,10 +90,11 @@ export async function onRequestPost({request,env}) {
   try {
     const attributionTable = await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='submission_attributions'").first();
     if (!attributionTable) return respond({ok:false,error:"投稿暂不可用：请站长先在 Cloudflare D1 执行 submission_initials_upgrade.sql"},503);
+    await ensureExtendedPaperFields(db);
     const hash = await fingerprint(request,env);
     const [recent,duplicate] = await Promise.all([
       db.prepare("SELECT COUNT(*) AS n FROM submissions WHERE submitter_hash=? AND created_at>=datetime('now','-1 hour')").bind(hash).first(),
-      db.prepare("SELECT id FROM submissions WHERE lower(trim(title))=lower(?) AND lower(trim(summary))=lower(?) AND created_at>=datetime('now','-1 day') LIMIT 1").bind(title,summary).first()
+      db.prepare("SELECT id FROM submissions WHERE lower(trim(COALESCE(full_title,title)))=lower(?) AND lower(trim(COALESCE(full_summary,summary)))=lower(?) AND created_at>=datetime('now','-1 day') LIMIT 1").bind(title,summary).first()
     ]);
     if (Number(recent?.n||0) >= 3) {
       return respond({ok:false,error:"提交太频繁：同一网络来源每小时最多提交 3 条"},429);
@@ -82,8 +103,8 @@ export async function onRequestPost({request,env}) {
 
     // D1 batch() is transactional: the initials and literature post must persist together.
     const [saved] = await db.batch([
-      db.prepare("INSERT INTO submissions (title,summary,status,submitter_hash) VALUES (?,?,'approved',?)")
-        .bind(title,summary,hash),
+      db.prepare("INSERT INTO submissions (title,summary,full_title,full_summary,status,submitter_hash) VALUES (?,?,?,?,'approved',?)")
+        .bind(Array.from(title).slice(0,200).join(""),Array.from(summary).slice(0,1200).join(""),title,summary,hash),
       db.prepare("INSERT INTO submission_attributions (submission_id,initials) VALUES (last_insert_rowid(),?)")
         .bind(submitterInitials)
     ]);
@@ -104,7 +125,7 @@ export async function onRequestPost({request,env}) {
 
     return respond({
       ok:true,id,status:"approved",submitter_initials:submitterInitials,receipt,
-      message:"投稿成功，暗号及字符长度验证通过，文献已自动批准并公开。"
+      message:"投稿成功，暗号及词数验证通过，文献已自动批准并公开。"
     },201);
   } catch(error) {
     console.error("Saving community submission failed:",error);
