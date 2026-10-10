@@ -53,3 +53,24 @@ SELECT name FROM sqlite_master WHERE type='table' AND name IN ('code_shares','co
 ## 相同标题覆盖
 
 再次用同一功能名称提交代码时，通过 `publication_key` 唯一索引定位原记录，覆盖完整代码和投稿者首字母，保留原记录 ID，搜索与一键复制立即读取更新后的正文，公开列表不展示源代码。旧记录不删除，原先的下架状态仍由管理员控制。同名提交需要正确的统一发布暗号；建议不要将这个暗号公开分享给非可信用户。
+
+
+## R2 样图上传与按需查看（新增）
+
+每条科研代码最多上传 **3 张样图**，单张 **不超过 1 MiB**，仅允许 **PNG / JPG / WebP**。图片二进制文件保存在 **Cloudflare R2 私有存储桶**，原 D1 数据库仅保存图片的 R2 对象键、格式、大小与代码关联，不会把图片存到 D1。公开代码库只有在有图片时显示“查看样图（N）”；访客点击才会从同源 API 加载图片。代码一键复制仍然独立可用。
+
+### Cloudflare 必做配置
+
+1. 打开 **Cloudflare → R2 Object Storage → Create bucket**，新建一个私有存储桶，例如 `material-notes-code-images`。不需要开启公共访问或绑定 R2 自定义域名。
+2. 进入 **Workers & Pages → Pages 项目 → Settings → Bindings → Add binding → R2 bucket**。将 **变量名填成 `CODE_IMAGES`**，选择刚创建的存储桶。生产环境需要设置该绑定；若使用 Preview 环境测试，也要确认该环境有绑定。
+3. 原来的 D1 变量名 `DB`、统一发布 Secret `PUBLICATION_APPROVAL_CODE` 不变。新版 Functions 自动新建 `code_share_images` 关联表，也可手动在 D1 Console 执行仓库的 `code_shares_schema.sql`。
+4. 重新部署 `material-notes-pages` 分支，刷新页面后，在“分享分析代码”表单选择 PNG/JPG/WebP 图片。正常投稿成功后，公开列表出现“查看样图”入口。
+
+### 同标题覆盖与失败情况
+
+- **不选择样图**：重新提交相同标题的代码，仅更新代码和署名，保留原样图。
+- **选择新样图**：提交完代码后单独上传并替换旧样图；上传全部成功后才更换 D1 图片关联并删除旧 R2 文件。
+- **R2 上传失败**：代码本身可能已经发布；表单会提示样图失败，可以重新以相同标题提交并重试。
+- 图片以文件签名验证基础格式，不运行任何上传图片中的脚本。请在上传前清除图中的机密信息及不必要的 EXIF 元数据。
+
+新增接口：`GET /api/code-images?code_id=123` 读取代码关联的图片清单，`GET /api/code-images?image_id=...` 按需读取已公开代码的某张样图，`POST /api/code-images` 需要统一发布暗号的 multipart 上传或替换图片操作。上传并不自动压缩图像，由投稿者自行保证大小。
