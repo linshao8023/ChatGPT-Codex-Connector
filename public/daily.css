@@ -11,12 +11,12 @@
 .daily-current-top{display:flex;gap:15px;justify-content:space-between;flex-wrap:wrap;font-size:11px;font-weight:700;letter-spacing:1.3px;color:#789082}
 .daily-current h2{font-size:clamp(23px,3.2vw,35px);margin:22px 0 7px;letter-spacing:-.6px}
 #daily-current-status,#daily-history-status{font-size:13px;color:#748579;line-height:1.75}
-.daily-paper-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:26px}
-.daily-paper-item{display:flex;align-items:center;gap:16px;width:100%;text-align:left;padding:19px;border:1px solid #e1e9e3;border-radius:8px;background:#fbfdfb;cursor:pointer;font:inherit;color:#173e34;min-width:0}
-.daily-paper-item:hover,.daily-paper-item:focus-visible{border-color:#71a486;background:#f0f7f1}
-.daily-paper-number{font-size:22px;font-weight:800;color:#9bb9a5;min-width:37px}
-.daily-paper-item strong{flex:1;font-size:14px;line-height:1.65;overflow-wrap:anywhere}
-.daily-paper-arrow{font-size:11px;color:#498064;white-space:nowrap}
+.daily-preview,.daily-archive-preview{font:inherit;color:#566e5f;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;line-clamp:5;overflow:hidden;max-height:9.25em}
+.daily-preview{font-size:14px;margin:19px 0 24px;padding-top:17px;border-top:1px solid #e5ede6}
+.daily-preview[hidden],.daily-read-button[hidden]{display:none!important}
+.daily-read-button{font:inherit;font-size:13px;font-weight:700;color:#fff;background:#173e34;border:1px solid #173e34;border-radius:6px;padding:12px 18px;cursor:pointer}
+.daily-read-button:hover,.daily-read-button:focus-visible{background:#2a6958;border-color:#2a6958}
+.daily-archive-preview{font-size:12px;line-height:1.7;max-height:8.5em;margin:0;min-width:0;width:100%;font-weight:400;flex:1}
 .daily-detail{margin-top:17px;padding:26px;background:#17352a;border-radius:10px;color:#fff}
 .daily-detail[hidden],.daily-history-pages[hidden],.submit-panel[hidden]{display:none!important}
 .daily-detail-head{display:flex;justify-content:space-between;align-items:start;gap:20px}
@@ -27,7 +27,7 @@
 .daily-history .section-intro h2{font-size:clamp(26px,4vw,43px)}
 .daily-history-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
 .daily-history-card{display:flex;flex-direction:column;align-items:start;gap:13px;min-width:0;min-height:164px;border:1px solid #dce6df;border-radius:10px;background:white;text-align:left;padding:23px;cursor:pointer;color:#1b3f2f;font:inherit}
-.daily-history-card small{font-size:11px;color:#7d9382}.daily-history-card strong{font-size:16px;line-height:1.7;flex:1}.daily-history-card span{font-size:12px;color:#2a6958}
+.daily-history-card small{font-size:11px;color:#7d9382}.daily-history-card strong{font-size:16px;line-height:1.7}.daily-history-card span{font-size:12px;color:#2a6958}
 .daily-history-card:hover{border-color:#8fb8a0}
 .daily-history-pages{display:flex;justify-content:center;align-items:center;gap:14px;margin:25px 0 0;font-size:12px}
 .submission-center{padding:95px 0 110px;border-top:1px solid #dce4dc}
@@ -47,4 +47,4 @@
 .daily-submit-form textarea{min-height:300px;resize:vertical}.daily-submit-form button{font:inherit;border:0;background:#173e34;color:white;padding:14px;border-radius:8px;cursor:pointer;font-weight:700}
 .daily-submit-form button:disabled{opacity:.55}.daily-submit-note,#daily-submit-feedback{font-size:12px;color:#6e8574;line-height:1.8;margin:0}
 @media(max-width:800px){.daily-hero-heading{flex-direction:column;align-items:start;gap:20px}.daily-paper-list{grid-template-columns:1fr}.daily-history-list{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.daily-hero{padding-top:43px}.daily-paper-item{padding:14px}.daily-paper-arrow{display:none}.daily-history-list{grid-template-columns:1fr}.daily-detail-head{flex-direction:column}.submission-tabs{gap:6px}.submission-tabs button{font-size:12px;padding:12px 6px}.submission-center{padding-top:60px}.daily-current h2{margin-top:17px}}
+@media(max-width:600px){.daily-hero{padding-top:43px}.daily-paper-arrow{display:none}.daily-history-list{grid-template-columns:1fr}.daily-detail-head{flex-direction:column}.submission-tabs{gap:6px}.submission-tabs button{font-size:12px;padding:12px 6px}.submission-center{padding-top:60px}.daily-current h2{margin-top:17px}}

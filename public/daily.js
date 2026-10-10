@@ -3,42 +3,43 @@ const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined&&text!==null)e.textContent=String(text);if(cls)e.className=cls;return e};
 let activeIssue=null,archivePage=1,archivePages=1;
 async function request(url,options){const r=await fetch(url,{cache:"no-store",...options});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||"操作失败");return d;}
-function showEntry(entry){
+function firstFiveLines(value){
+ return String(value||"").replace(/\r\n?/g,"\n").split("\n").slice(0,5).join("\n");
+}
+function showFullIssue(issue){
+ if(!issue)return;
  const panel=$("daily-paper-detail");
- $("daily-detail-number").textContent=entry.kind==="full"?"FULL RESEARCH DIGEST / 全文":"RESEARCH SECTION / "+String(entry.number).padStart(2,"0");
- $("daily-detail-title").textContent=entry.title;
- $("daily-detail-body").textContent=entry.text;
- panel.hidden=false;panel.scrollIntoView({behavior:"smooth",block:"start"});
+ $("daily-detail-number").textContent="发布日期 / "+issue.issue_date;
+ $("daily-detail-title").textContent=issue.headline;
+ $("daily-detail-body").textContent=issue.body;
+ panel.hidden=false;
+ panel.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function renderIssue(issue){
- const list=$("daily-paper-list");list.replaceChildren();$("daily-paper-detail").hidden=true;
+ $("daily-paper-detail").hidden=true;
  activeIssue=issue;
+ const preview=$("daily-current-preview"),read=$("daily-current-read"),status=$("daily-current-status");
  if(!issue){
    $("daily-current-date").textContent="尚无简报";
    $("daily-current-title").textContent="等待第一期 AI 前沿文献简报";
-   $("daily-current-status").textContent="暂无已发布简报。请在页面最下方的投稿中心提交并发布第一期。";
+   status.hidden=false;
+   status.textContent="暂无已发布简报。请在页面最下方的投稿中心提交并发布第一期。";
+   preview.hidden=true;preview.textContent="";
+   read.hidden=true;
    return;
  }
  $("daily-current-date").textContent=issue.issue_date;
  $("daily-current-title").textContent=issue.headline;
- const sections=Array.isArray(issue.entries)?issue.entries:[];
- $("daily-current-status").textContent=sections.length
-   ?"本期简报已发布，可直接阅读全文，或按已识别的章节浏览。期刊分区需自行核验。"
-   :"本期简报已发布，点击下方查看完整内容。期刊分区需自行核验。";
- const full=el("button",null,"daily-paper-item daily-read-full");
- full.type="button";
- full.append(el("span","全文","daily-paper-number"),el("strong","查看完整简报"),el("span","阅读全部内容 ↗","daily-paper-arrow"));
- full.addEventListener("click",()=>showEntry({kind:"full",title:issue.headline,text:issue.body}));
- list.append(full);
- sections.forEach(entry=>{
-   const b=el("button",null,"daily-paper-item");b.type="button";
-   b.append(el("span",String(entry.number).padStart(2,"0"),"daily-paper-number"),el("strong",entry.title),el("span","阅读该章节 ↗","daily-paper-arrow"));
-   b.addEventListener("click",()=>showEntry(entry));list.append(b);
- });
+ preview.textContent=firstFiveLines(issue.body);
+ preview.hidden=false;
+ status.textContent="";
+ status.hidden=true;
+ read.hidden=false;
+ read.onclick=()=>showFullIssue(activeIssue);
 }
 async function loadLatest(){
  try{const d=await request("/api/digests?latest=1");renderIssue(d.issue);}
- catch(error){$("daily-current-status").textContent="简报暂时无法加载："+error.message;}
+ catch(error){$("daily-current-status").hidden=false;$("daily-current-status").textContent="简报暂时无法加载："+error.message;}
 }
 async function loadArchive(){
  const status=$("daily-history-status"),list=$("daily-history-list");status.textContent="正在读取往期简报…";list.replaceChildren();
@@ -48,7 +49,7 @@ async function loadArchive(){
   status.textContent=d.total?"共有 "+d.total+" 期简报":"暂无往期推送。";
   d.issues.forEach(item=>{
     const b=el("button",null,"daily-history-card");b.type="button";
-    b.append(el("small",item.issue_date),el("strong",item.headline),el("span","查看本期完整简报 ↗"));
+    b.append(el("small",item.issue_date),el("strong",item.headline),el("pre",firstFiveLines(item.preview),"daily-archive-preview"),el("span","阅读全文 ↗"));
     b.addEventListener("click",async()=>{
       b.disabled=true;try{const issue=await request("/api/digests?id="+item.id);renderIssue(issue.issue);$("daily-digest").scrollIntoView({behavior:"smooth"});}
       catch(error){status.textContent="读取失败："+error.message;}finally{b.disabled=false;}

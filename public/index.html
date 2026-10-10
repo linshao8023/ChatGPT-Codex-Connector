@@ -37,7 +37,7 @@
       <div class="daily-hero-heading">
         <div><p class="section-kicker">01 / DAILY AI RESEARCH BRIEF · HUMAN CURATED</p>
         <h1 id="daily-title">每日 AI 前沿文献<span>.</span></h1>
-        <p>每日高水平期刊研究速览。阅读最新简报的完整内容、浏览可识别的研究章节，或查看往期推送。</p>
+        <p>每日高水平期刊研究速览。直接查看发布日期、简报标题和正文前 5 行，点击阅读全文或浏览往期推送。</p>
         <p class="daily-disclaimer">所选论文及“一区 / Q1”期刊分区来自投稿简报，本站不会自动核验，请以期刊和论文原始资料为准。</p></div>
         <div class="daily-heading-actions"><a href="#daily-history">往期推送 ↓</a><a href="#submission-center" data-open-submission="digest">提交简报 ↗</a></div>
       </div>
@@ -45,7 +45,8 @@
         <div class="daily-current-top"><span>DAILY BRIEF / RESEARCH DIGEST</span><span id="daily-current-date">等待发布</span></div>
         <h2 id="daily-current-title">最新一期研究简报</h2>
         <p id="daily-current-status" role="status" aria-live="polite">正在读取最新简报…</p>
-        <div id="daily-paper-list" class="daily-paper-list"></div>
+        <pre id="daily-current-preview" class="daily-preview" hidden></pre>
+        <button type="button" id="daily-current-read" class="daily-read-button" hidden>阅读全文 ↗</button>
       </div>
       <div id="daily-paper-detail" class="daily-detail" hidden>
         <div class="daily-detail-head"><div><small id="daily-detail-number"></small><h3 id="daily-detail-title"></h3></div><button type="button" id="daily-detail-close">关闭详情 ×</button></div>
@@ -54,7 +55,7 @@
     </section>
     <section class="daily-history shell" id="daily-history" aria-labelledby="daily-history-title">
       <div class="section-intro"><div><p class="section-kicker">RESEARCH DIGEST ARCHIVE</p><h2 id="daily-history-title">往期 AI 文献简报<span class="heading-period">.</span></h2>
-      <p class="section-description">按发布日期倒序排列。点击任意一期即可阅读当期完整文献简报。</p></div></div>
+      <p class="section-description">按日期倒序展示每期的标题与正文前 5 行，点击即可查看完整简报。</p></div></div>
       <p id="daily-history-status" role="status" aria-live="polite">正在加载往期…</p>
       <div id="daily-history-list" class="daily-history-list"></div>
       <div id="daily-history-pages" class="daily-history-pages" hidden><button type="button" id="daily-history-prev">上一页</button><span id="daily-history-page"></span><button type="button" id="daily-history-next">下一页</button></div>

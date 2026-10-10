@@ -26,36 +26,10 @@ function validDate(value){
   return !Number.isNaN(date.getTime())&&date.toISOString().slice(0,10)===value;
 }
 
-// Any plain-text or AI-generated summary can be published without numbering.
-// Recognize optional numbered or Markdown headings for per-section browsing.
-// When the text has no reliable sections, the frontend offers full-text reading.
-function parseDigestEntries(value){
-  const lines=value.replace(/\r\n?/g,"\n").split("\n");
-  const sections=[];
-  let current=null;
-  function finishSection(){
-    if(!current)return;
-    sections.push({
-      number:sections.length+1,
-      title:current.title,
-      text:current.lines.join("\n").trim()
-    });
-    current=null;
-  }
-  for(const line of lines){
-    const numbered=line.match(/^\s*(?:#{1,6}\s*)?(?:\*\*)?\s*(?:第\s*)?\d{1,2}(?:\s*篇)?[.．、)）:：]\s*(.+?)\s*(?:\*\*)?\s*$/u);
-    const heading=line.match(/^\s*#{1,4}\s+(.+?)\s*$/u);
-    const rawTitle=numbered?.[1]||heading?.[1]||"";
-    const title=rawTitle.replace(/^\*+|\*+$/g,"").trim();
-    if(title.length>=3){
-      finishSection();
-      current={title:title.slice(0,180),lines:[line]};
-    }else if(current){
-      current.lines.push(line);
-    }
-  }
-  finishSection();
-  return sections;
+// Show only the first five source lines (including intentionally blank lines).
+// The full body remains available when a reader opens the complete issue.
+function firstFiveLines(value){
+  return String(value||"").replace(/\r\n?/g,"\n").split("\n").slice(0,5).join("\n");
 }
 
 function publicIssue(row){
@@ -65,7 +39,7 @@ function publicIssue(row){
     issue_date:row.issue_date,
     headline:row.headline,
     body:row.full_body||row.body,
-    entries:parseDigestEntries(row.full_body||row.body),
+    preview:firstFiveLines(row.full_body||row.body),
     updated_at:row.updated_at
   };
 }
@@ -95,10 +69,11 @@ export async function onRequestGet({request,env}){
     const perPage=12;
     const total=await db.prepare("SELECT count(*) AS count FROM daily_ai_digests").first();
     const list=await db.prepare(
-      "SELECT id,issue_date,headline,created_at,updated_at FROM daily_ai_digests "+
+      "SELECT id,issue_date,headline,body,full_body,created_at,updated_at FROM daily_ai_digests "+
       "ORDER BY issue_date DESC,id DESC LIMIT ? OFFSET ?"
     ).bind(perPage,(page-1)*perPage).all();
-    return respond({ok:true,issues:list.results||[],total:Number(total?.count||0),page,per_page:perPage});
+    const issues=(list.results||[]).map(row=>({id:row.id,issue_date:row.issue_date,headline:row.headline,preview:firstFiveLines(row.full_body||row.body),created_at:row.created_at,updated_at:row.updated_at}));
+    return respond({ok:true,issues,total:Number(total?.count||0),page,per_page:perPage});
   }catch(error){
     console.error("Daily digest read failed",error);
     return respond({ok:false,error:"每日简报暂时无法读取，请检查 D1 绑定"},503);
