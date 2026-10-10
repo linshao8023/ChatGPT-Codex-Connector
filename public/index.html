@@ -92,6 +92,13 @@
 <section class="codes-section" id="code-library"><div class="codes-heading"><div><p class="section-kicker">01 / SHARED CODE</p><h2>公开代码库</h2></div><span id="code-result-status" role="status" aria-live="polite">正在加载…</span></div>
 <form id="code-search-form" class="codes-filter"><label for="code-search">搜索代码功能、内容或分享者</label><div class="codes-filter-row"><input id="code-search" type="search" maxlength="120" placeholder="如 matplotlib、拟合、热图、wsl"><select id="code-sort" aria-label="排序"><option value="newest">最新发布</option><option value="oldest">最早发布</option><option value="title">标题 A–Z</option><option value="title_desc">标题 Z–A</option></select><button type="submit">搜索</button></div></form>
 <div id="code-list" class="code-list" aria-live="polite"></div>
+<div id="code-image-viewer" class="code-image-viewer" hidden role="dialog" aria-modal="true" aria-labelledby="code-image-viewer-title">
+  <div class="code-image-dialog"><div class="code-image-head"><h3 id="code-image-viewer-title">样图示例</h3>
+    <button type="button" id="code-image-viewer-close" aria-label="关闭样图">关闭 ×</button></div>
+    <p id="code-image-viewer-status" role="status" aria-live="polite"></p>
+    <div id="code-image-viewer-grid" class="code-image-grid"></div>
+  </div>
+</div>
 <div class="code-pages" id="code-pages" role="navigation" aria-label="公开代码库分页">
   <button type="button" id="code-prev">上一页</button>
   <span id="code-page">第 1 / 1 页</span>
@@ -149,6 +156,9 @@
       <section class="submit-panel" id="code-publish" role="tabpanel" aria-labelledby="submission-tab-code" hidden><div class="codes-heading"><div><p class="section-kicker">03 / SHARE YOUR WORK</p><h2>提交数据绘图与分析代码</h2></div></div><form id="code-form" class="code-publish-form">
 <label for="code-title">分享代码功能名称 <span>*</span></label><input id="code-title" required maxlength="2000" minlength="2" placeholder="代码功能名称（少于 30 词）"><small class="field-counter" id="code-title-count" aria-live="polite">0 / 29 词</small>
 <label for="code-body">详细代码 <span>*</span></label><textarea id="code-body" required minlength="10" maxlength="200000" rows="15" spellcheck="false" placeholder="粘贴完整代码（10–200,000 字符），建议添加依赖与运行说明。"></textarea><small class="field-counter" id="code-body-count" aria-live="polite">0 / 200,000 字符</small>
+<label for="code-images">样图示例上传（可选，最多 3 张，每张 ≤ 1 MB）</label>
+<input id="code-images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+<small class="codes-hint" id="code-images-status" aria-live="polite">支持 PNG / JPG / WebP。不上传新样图时保留旧图；选择新图则替换旧图。</small>
 <label for="code-author">提交者姓名首字母 <span>*</span></label><input id="code-author" required pattern="[A-Za-z]{1,12}" maxlength="12" placeholder="例如：王少林 → wsl">
 <label for="code-secret">发布暗号 <span>*</span></label><input id="code-secret" type="password" required maxlength="128" autocomplete="off" placeholder="输入代码分享暗号">
 <p class="codes-hint">提交后在下方独立代码库公开；相同功能名称再次提交会直接覆盖旧代码与署名，并支持一键复制。请仅发布你有权分享的代码，勿包含密码、API Key 或个人数据。</p><button id="code-submit" type="submit">提交并公开代码 ↗</button><p id="code-form-feedback" role="status" aria-live="polite"></p></form></section>

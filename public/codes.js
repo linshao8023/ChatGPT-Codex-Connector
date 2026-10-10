@@ -124,7 +124,14 @@ async function load(){
    feedback.setAttribute("role","status");
    feedback.setAttribute("aria-live","polite");
    copyButton.addEventListener("click",()=>copyById(Number(item.id),copyButton,feedback));
-   action.append(copyButton,feedback);
+   action.append(copyButton);
+   if(Number(item.image_count)>0){
+    const preview=dom("button","查看样图（"+item.image_count+"）","code-view-images");
+    preview.type="button";
+    preview.addEventListener("click",()=>openSampleImages(item.id,item.title));
+    action.append(preview);
+   }
+   action.append(feedback);
    record.append(title,meta,action);
    list.append(record);
   }
@@ -142,12 +149,46 @@ async function load(){
   byId("code-go").disabled=true;
  }
 }
+async function openSampleImages(id,title){
+ const dialog=byId("code-image-viewer"),grid=byId("code-image-viewer-grid"),status=byId("code-image-viewer-status");
+ byId("code-image-viewer-title").textContent=title+" · 样图示例";
+ grid.replaceChildren();status.textContent="正在加载样图…";
+ dialog.hidden=false;document.body.classList.add("code-images-open");
+ byId("code-image-viewer-close").focus();
+ try{
+  const data=await api("/api/code-images?code_id="+encodeURIComponent(id));
+  if(!data.images.length){status.textContent="该代码暂无样图";return;}
+  status.textContent="共有 "+data.images.length+" 张样图";
+  for(const img of data.images){
+   const frame=dom("figure",null,"code-image-frame");
+   const picture=document.createElement("img");
+   picture.src=img.url;picture.alt=title+" 的样图示例";
+   picture.loading="lazy";picture.decoding="async";
+   picture.addEventListener("error",()=>frame.append(dom("figcaption","图片暂时无法读取")));
+   frame.append(picture);grid.append(frame);
+  }
+ }catch(error){status.textContent="样图加载失败："+error.message;}
+}
+function closeSampleImages(){
+ byId("code-image-viewer").hidden=true;
+ byId("code-image-viewer-grid").replaceChildren();
+ document.body.classList.remove("code-images-open");
+}
 function init(){
  for(const [id,out,words]of [["code-title","code-title-count",true],["code-body","code-body-count",false]]){
    const input=byId(id),target=byId(out);
    const update=()=>{const count=words?wordCount(input.value):Array.from(input.value).length;target.textContent=count+" / "+(words?"29 词":"200,000 字符");target.classList.toggle("over-limit",count>(words?29:200000));};
    input.addEventListener("input",update);update();
  }
+ const imageInput=byId("code-images");
+ imageInput.addEventListener("change",()=>{
+  const files=Array.from(imageInput.files||[]);
+  const invalid=files.length>3||files.some(file=>file.size>1048576||file.size<1||!["image/png","image/jpeg","image/webp"].includes(file.type));
+  byId("code-images-status").textContent=invalid?"最多 3 张，单张 ≤ 1 MB，仅支持 PNG/JPG/WebP":files.length+" 张待上传样图；发布成功后保存到 R2。";
+ });
+ byId("code-image-viewer-close").addEventListener("click",closeSampleImages);
+ byId("code-image-viewer").addEventListener("click",e=>{if(e.target===byId("code-image-viewer"))closeSampleImages()});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!byId("code-image-viewer").hidden)closeSampleImages()});
  byId("code-search-form").addEventListener("submit",event=>{event.preventDefault();state.page=1;load()});
  byId("code-sort").addEventListener("change",()=>{state.page=1;load()});
  byId("code-prev").addEventListener("click",()=>{if(state.page>1){state.page--;load()}});
@@ -175,12 +216,30 @@ function init(){
   if(!/^[a-z]{1,12}$/.test(initials)){feedback.textContent="姓名首字母请填写英文字母，如 wsl";return;}
   if(wordCount(title)<1||wordCount(title)>=30||Array.from(title).length<2){feedback.textContent="代码功能名称必须少于 30 词";return;}
   if(Array.from(code).length>200000){feedback.textContent="详细代码不能超过 200,000 个字符";return;}
+  const images=Array.from(byId("code-images").files||[]);
+  if(images.length>3||images.some(f=>f.size<1||f.size>1048576||!["image/png","image/jpeg","image/webp"].includes(f.type))){
+   feedback.textContent="样图最多 3 张，每张 ≤ 1 MB，格式仅限 PNG/JPG/WebP";return;
+  }
   button.disabled=true;feedback.textContent="正在验证暗号并发布…";
   try{
    const data=await api("/api/codes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,code,initials,approval_code:approval})});
-   feedback.textContent=data.message;
-   byId("code-form").reset();state.page=1;
-   await load();
+   if(images.length){
+    feedback.textContent="代码已保存，正在上传 "+images.length+" 张样图…";
+    const form=new FormData();
+    form.append("code_id",String(data.id));
+    form.append("approval_code",approval);
+    for(const image of images)form.append("images",image);
+    try{
+     const uploaded=await api("/api/code-images",{method:"POST",body:form});
+     feedback.textContent=data.message+" "+uploaded.message;
+    }catch(error){
+     feedback.textContent=data.message+" 但样图上传失败："+error.message+"；可使用相同标题重试。";
+     state.page=1;await load();return;
+    }
+   }else{feedback.textContent=data.message;}
+   byId("code-form").reset();
+   byId("code-images-status").textContent="未选择样图。支持 PNG / JPG / WebP。";
+   state.page=1;await load();
   }catch(error){feedback.textContent="提交失败："+error.message;}
   finally{button.disabled=false;}
  });

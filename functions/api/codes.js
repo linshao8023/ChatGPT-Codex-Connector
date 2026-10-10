@@ -121,7 +121,20 @@ export async function onRequestGet({env,request}) {
       "SELECT id,COALESCE(full_title,title) AS title,initials,created_at FROM code_shares WHERE "
       +where+" "+sortExpression(sort)+" LIMIT ? OFFSET ?"
     ).bind(...args,perPage,(page-1)*perPage).all();
-    return respond({ok:true,items:rows.results||[],total:Number(count?.n||0),page,per_page:perPage,sort});
+    const ids=(rows.results||[]).map(row=>row.id);
+    let imageCounts=new Map();
+    if(ids.length){
+      try{
+        const table=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='code_share_images'").first();
+        if(table){
+          const placeholders=ids.map(()=>"?").join(",");
+          const countRows=await db.prepare("SELECT code_id,count(*) AS n FROM code_share_images WHERE code_id IN ("+placeholders+") GROUP BY code_id").bind(...ids).all();
+          imageCounts=new Map((countRows.results||[]).map(row=>[row.code_id,Number(row.n)]));
+        }
+      }catch(error){console.warn("Code sample count unavailable",error);}
+    }
+    const items=(rows.results||[]).map(row=>({...row,image_count:imageCounts.get(row.id)||0}));
+    return respond({ok:true,items,total:Number(count?.n||0),page,per_page:perPage,sort});
   }catch(error) {
     return databaseFailure(error,"read");
   }
