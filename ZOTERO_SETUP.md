@@ -43,3 +43,9 @@
 ## 安全
 
 \`ZOTERO_API_KEY\` 和 \`ZOTERO_SYNC_TOKEN\` 只能保存在 Cloudflare Variables and Secrets（选择 Secret），**不可**使用 \`NEXT_PUBLIC_\` 等会暴露到浏览器的前缀。公开 GET 不会返回秘密。生产/预览环境可能需要分别配置 Bindings 和 Secrets。若希望按整点周期自动同步，请另外配置 Worker Cron Triggers；Pages 自身不提供本版本的后台周期 Cron 任务。
+
+## 首次同步断点续传（2026-10-10 更新）
+
+同步已改为每次后台任务最多处理 2 页（每页至多 100 条），使用单条 JSON1 SQL 写入每页，不再占用数百次 D1 查询；首次访问自动创建 `zotero_sync_progress` 进度表，不需额外 SQL。每次访问 `/api/zotero` 会继续未完成的暂存数据，直到发布完整快照。后台中断后短租约允许恢复，API 会暴露 `progress` 与 `last_error`（不含任何密钥）。如果站点无人访问，进度不会自动推进。
+
+密钥泄露处理：若曾把 Zotero API Key 发到聊天或其他地方，先在 Zotero 官网撤销，再生成仅具读取权限的新 Key，并在 Cloudflare 的 `ZOTERO_API_KEY` Secret 中更新；不要把密钥粘贴到网页、GitHub 或任何聊天。
